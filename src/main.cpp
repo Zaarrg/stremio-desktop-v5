@@ -1,6 +1,6 @@
 #include <clocale>
 #include <QtWebEngineQuick>
-
+#include <QQuickWebEngineProfile>
 
 
 #define APP_TITLE "Stremio - Freedom to Stream"
@@ -65,6 +65,13 @@ int main(int argc, char **argv)
 
     // **Instantiate your application object here**
     MainApp app(argc, argv, true);
+
+    // Persistent Session
+    QQuickWebEngineProfile* webEngineProfile = QQuickWebEngineProfile::defaultProfile();
+    webEngineProfile->setPersistentCookiesPolicy(QQuickWebEngineProfile::ForcePersistentCookies);
+    webEngineProfile->setOffTheRecord(false);
+    webEngineProfile->setStorageName(QStringLiteral("Default"));
+    webEngineProfile->setCachePath(webEngineProfile->persistentStoragePath() + QStringLiteral("/Cache"));
 
 #ifndef Q_OS_MACOS
     if( app.isSecondary() ) {

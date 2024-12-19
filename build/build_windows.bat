@@ -108,7 +108,7 @@ REM Step 5: Copy node.exe into dist-win
 echo Copying node.exe into dist-win...
 copy "%SOURCE_DIR%utils\windows\node.exe" "%DIST_DIR%" /Y >nul
 
-REM Step 6: Copy required DLLs into dist-win
+REM Step 6: Copy required OpenSSL DLLs into dist-win
 echo Copying required OpenSSL DLLs into dist-win...
 
 set DLL_LIST=libcrypto-3-x64.dll libssl-3-x64.dll
@@ -116,7 +116,13 @@ set DLL_LIST=libcrypto-3-x64.dll libssl-3-x64.dll
 for %%D in (%DLL_LIST%) do (
     echo Copying %%D...
     copy "%SSL_BIN_DIR%\%%D" "%DIST_DIR%" /Y >nul
+    if ERRORLEVEL 1 (
+        echo Failed to copy %%D. Aborting...
+        exit /b 1
+    )
 )
+
+echo All DLLs copied successfully.
 
 
 REM Step 7: Copy all files from windows\DS\ into dist-win
