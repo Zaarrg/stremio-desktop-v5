@@ -1,3 +1,4 @@
 .idea/*
 dist/win/*
 utils/Stremio 5.0.0.exe
+utils/windows/server.js
