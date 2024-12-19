@@ -1,0 +1,6 @@
+[submodule "deps/singleapplication"]
+	path = deps/singleapplication
+	url = https://github.com/itay-grudev/SingleApplication
+[submodule "deps/libmpv"]
+	path = deps/libmpv
+	url = https://github.com/Zaarrg/libmpv
