@@ -28,9 +28,9 @@ extern "C" {
 
 // TODO Move to somewhere? Document that we can override?
 #define SERVER_FNAME "server.js"
-#define ASAR_FNAME "stremio.asar"
+//#define ASAR_FNAME "stremio.asar"
 
-#define PARTIAL_UPDATE_FILES { SERVER_FNAME, ASAR_FNAME }
+#define PARTIAL_UPDATE_FILES { SERVER_FNAME }
 
 #if defined(Q_OS_WIN)
     #define FULL_UPDATE_FILES { "windows" }

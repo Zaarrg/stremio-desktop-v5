@@ -107,17 +107,9 @@ int AutoUpdater::executeCmd(QString cmd, QStringList args, bool noWait = false) 
 // CHECK FOR UPDATES
 void AutoUpdater::checkForUpdatesPerform(QString endpoint, QString userAgent)
 {
-    QByteArray serverHash = getFileChecksum(QCoreApplication::applicationDirPath() +  QDir::separator() + SERVER_FNAME);
-    QByteArray asarHash = getFileChecksum(QCoreApplication::applicationDirPath() +  QDir::separator() + ASAR_FNAME);
-
     QUrl url = QUrl(endpoint);
-    QUrlQuery query = QUrlQuery(url);
+    qDebug() << "AUTOUPDATER: Checking for updates...";
 
-    query.addQueryItem("serverSum", serverHash.toHex());
-    query.addQueryItem("asarSum", asarHash.toHex());
-    query.addQueryItem("shellVersion", QCoreApplication::applicationVersion());
-
-    url.setQuery(query);
     auto request = QNetworkRequest(QUrl(url));
     request.setRawHeader("User-Agent", userAgent.toUtf8());
     currentCheck = manager->get(request);
@@ -218,14 +210,19 @@ void AutoUpdater::prepareUpdate(QJsonDocument versionDescDoc) {
     QJsonObject versionDesc = versionDescDoc.object();
     QJsonObject files = versionDesc.value("files").toObject();
 
+    QByteArray serverHash = getFileChecksum(QCoreApplication::applicationDirPath() + QDir::separator() + SERVER_FNAME);
+    QString serverHashHex = QString::fromLatin1(serverHash.toHex());
     QVector<QString> toDownload;
 
     if (forceFullUpdate
         || versionDesc.value("shellVersion").toString() != QCoreApplication::applicationVersion()
     ) {
         toDownload = FULL_UPDATE_FILES;
-    } else {
+    } else if (files.value(PARTIAL_UPDATE_FILES).toObject().value("checksum").toString() != serverHashHex) {
         toDownload = PARTIAL_UPDATE_FILES;
+    } else {
+        qDebug() << "Everything is up to date";
+        return;
     }
 
     if (! toDownload.length()) {

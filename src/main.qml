@@ -237,7 +237,7 @@ ApplicationWindow {
                 }
             }
             if (ev === "autoupdater-notif-clicked" && autoUpdater.onNotifClicked) {
-                autoUpdater.onNotifClicked();
+                autoUpdater.onNotifClicked(); //Event not used. We use qt updateScreen notification instead
             }
             if (ev === "screensaver-toggle") shouldDisableScreensaver(args.disabled)
             if (ev === "file-close") fileDialog.close()
@@ -362,20 +362,149 @@ ApplicationWindow {
         id: splashScreen;
         color: "#0c0b11";
         anchors.fill: parent;
-        Image {
-            id: splashLogo
-            source: "qrc:///images/stremio.png"
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.verticalCenter: parent.verticalCenter
 
-            SequentialAnimation {
-                id: pulseOpacity
-                running: true
-                NumberAnimation { target: splashLogo; property: "opacity"; to: 1.0; duration: 600;
-                    easing.type: Easing.Linear; }
-                NumberAnimation { target: splashLogo; property: "opacity"; to: 0.3; duration: 600;
-                    easing.type: Easing.Linear; }
-                loops: Animation.Infinite
+        Column {
+            anchors.centerIn: parent
+            spacing: 20
+            Image {
+                id: splashLogo
+                source: "qrc:///images/stremio.png"
+                anchors.horizontalCenter: parent.horizontalCenter
+
+                SequentialAnimation {
+                    id: pulseOpacity
+                    running: true
+                    NumberAnimation { target: splashLogo; property: "opacity"; to: 1.0; duration: 600;
+                        easing.type: Easing.Linear; }
+                    NumberAnimation { target: splashLogo; property: "opacity"; to: 0.3; duration: 600;
+                        easing.type: Easing.Linear; }
+                    loops: Animation.Infinite
+                }
+            }
+
+            Column {
+                height: 90 //Height of updateScreen elements 45 + 30 + 15
+                width: 100
+                anchors.horizontalCenter: parent.horizontalCenter
+            }
+        }
+    }
+
+    //Connection to show update Screen. Needed because autoupdater runs in different thread
+    QtObject {
+        id: autoUpdateTransport
+        signal showUpdateScreen()
+    }
+
+    Connections {
+        target: autoUpdateTransport
+        onShowUpdateScreen: {
+            updateScreen.visible = true;
+            updateScreen.focus = true;
+        }
+    }
+
+    //
+    // Update screen
+    // Must be over the UI
+    //
+    Rectangle {
+        id: updateScreen
+        color: "#0c0b11"
+        anchors.fill: parent
+        visible: false
+
+        MouseArea {
+            anchors.fill: parent
+            hoverEnabled: true
+        }
+
+        Column {
+            anchors.centerIn: parent
+            spacing: 20
+
+            Image {
+                id: updateLogo
+                source: "qrc:///images/stremio.png"
+                anchors.horizontalCenter: parent.horizontalCenter // Align like splashLogo
+            }
+
+            Column {
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: 15
+
+                Text {
+                    text: "Stremio update available!"
+                    color: "white"
+                    font.bold: true
+                    font.pointSize: 14
+                    height: 30
+                    horizontalAlignment: Text.AlignHCenter
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+
+                Row {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: 25
+
+                    Button {
+                        width: 80
+                        height: 45
+                        background: Rectangle {
+                            id: updateButtonBg
+                            color: parent.hovered ? "#6B64F2" : "#5351D9"
+                            radius: 5
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onEntered: parent.hovered = true
+                                onExited: parent.hovered = false
+                            }
+                        }
+                        contentItem: Text {
+                            text: "Update"
+                            color: "white"
+                            font.weight: Font.DemiBold
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            anchors.fill: parent
+                        }
+                        onClicked: {
+                            updateScreen.visible = false
+                            autoUpdater.onNotifClicked();
+                        }
+                    }
+
+                    Button {
+                        width: 80
+                        height: 45
+                        background: Rectangle {
+                            id: laterButtonBg
+                            color: parent.hovered ? "#4A4A4A" : "#353637"
+                            radius: 5
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onEntered: parent.hovered = true
+                                onExited: parent.hovered = false
+                            }
+                        }
+                        contentItem: Text {
+                            text: "Later"
+                            color: "white"
+                            font.weight: Font.DemiBold
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            anchors.fill: parent
+                        }
+                        onClicked: {
+                            // Handle postpone action
+                            updateScreen.visible = false
+                            webView.visible = true
+                            webView.focus = true
+                        }
+                    }
+                }
             }
         }
     }

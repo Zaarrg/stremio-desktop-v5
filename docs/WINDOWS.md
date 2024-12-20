@@ -97,9 +97,9 @@ Ensure the following are installed on your system:
 
 4. Build distributable
    ```cmd
-   build_windows_vcpkg.bat {cmake-build-folder} {openssl-bin}
+   build_windows.bat {cmake-build-folder} {openssl-bin}
    
-   build_windows_vcpkg.bat cmake-build-release
+   build_windows.bat cmake-build-release "C:\Program Files\OpenSSL-Win64\bin"
    ```
 
 

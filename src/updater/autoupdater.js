@@ -8,8 +8,7 @@
 
         var errorCounter = MAX_ERROR_COUNT;
 
-        var endpoints = ["https://www.strem.io/updater/check", "https://www.stremio.com/updater/check",
-                         "https://www.stremio.net/updater/check"];
+        var endpoints = ["https://raw.githubusercontent.com/Zaarrg/stremio-desktop-v5/refs/heads/master/version/version.json"];
         var fallbackSite = "https://www.stremio.com/?fromFailedAutoupdate=true";
         var doAutoupdate = autoUpdater.isInstalled()
 
@@ -93,7 +92,7 @@
             // a notification event once it loads
             // Then, we must set .onNotifClicked to what we'll do when the notification is clicked
 
-            if (preparedFiles.length == 2) {
+            if (firstFile && firstFile.match(".js")) {
                 //
                 // Prepare partial auto-update
                 //
@@ -104,7 +103,11 @@
                     autoUpdaterErr("preparing partial update failed", null)
                     return
                 }
-                transport.queueEvent("autoupdater-show-notif", { mode: "reload" })
+                //transport.queueEvent("autoupdater-show-notif", { mode: "reload" })
+                Qt.callLater(function () {
+                    autoUpdateTransport.showUpdateScreen();
+                });
+
                 autoUpdater.onNotifClicked = function() {
                     splashScreen.visible = true
                     pulseOpacity.running = true
@@ -141,7 +144,10 @@
                     return;
                 }
 
-                transport.queueEvent("autoupdater-show-notif", { mode: "restart" })
+                //transport.queueEvent("autoupdater-show-notif", { mode: "restart" })
+                Qt.callLater(function () {
+                    autoUpdateTransport.showUpdateScreen();
+                });
                 autoUpdater.onNotifClicked = function() {
                     autoUpdater.executeCmd("/bin/sh", ["-c", "sleep 5; open -n /Applications/Stremio.app"], true)
                     quitApp();
@@ -150,7 +156,10 @@
                 // 
                 // Prepare launch-based auto-update (launch new installer/appimage on Windows)
                 //
-                transport.queueEvent("autoupdater-show-notif", { mode: "launchNew" })
+                //transport.queueEvent("autoupdater-show-notif", { mode: "launchNew" })
+                Qt.callLater(function () {
+                    autoUpdateTransport.showUpdateScreen();
+                });
                 autoUpdater.onNotifClicked = function() {
                     Qt.openUrlExternally("file:///"+firstFile.replace(/\\/g,'/'))
                     quitApp();
@@ -168,7 +177,10 @@
                     autoUpdaterErr("preparing Linux .appimage failed", null);
                     return;
                 }
-                transport.queueEvent("autoupdater-show-notif", { mode: "launchNew" })
+                //transport.queueEvent("autoupdater-show-notif", { mode: "launchNew" })
+                Qt.callLater(function () {
+                    autoUpdateTransport.showUpdateScreen();
+                });
                 autoUpdater.onNotifClicked = function() {
                     autoUpdater.executeCmd("/bin/sh", ["-c", "$HOME/'"+baseName+"'"], true)
                                     // crappy, but otherwise we have to write code to get env var
