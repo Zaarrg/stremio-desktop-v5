@@ -272,18 +272,18 @@ void MpvObject::handle_mpv_event(mpv_event *event) {
             this->setVisible(false);
             mpv_event_end_file *endFile = (mpv_event_end_file *)event->data;
             switch (endFile->reason) {
+                case MPV_END_FILE_REASON_EOF:
+                    eventJson["reason"] = "quit";
+                    Q_EMIT mpvEvent("mpv-event-ended", eventJson);
+                    break;
                 case MPV_END_FILE_REASON_ERROR:
                     eventJson["reason"] = "error";
                     eventJson["error"] = mpv_error_string(endFile->error);
-                    break;
-                case MPV_END_FILE_REASON_QUIT:
-                    eventJson["reason"] = "quit";
+                    Q_EMIT mpvEvent("mpv-event-ended", eventJson);
                     break;
                 default:
-                    eventJson["reason"] = "other";
                     break;
             }
-            Q_EMIT mpvEvent("mpv-event-ended", eventJson);
             break;
         }
         case MPV_EVENT_SHUTDOWN: {

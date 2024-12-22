@@ -15,6 +15,7 @@ public:
     void signalIconActivated();
     void signalShow();
     void signalAlwaysOnTop();
+    void signalBorderlessWindow();
     void signalQuit();
 
     private slots:
@@ -26,6 +27,8 @@ public:
         void hideIconTray();
     void updateVisibleAction(bool isVisible);
     void updateIsOnTop(bool isOnTop);
+    void updateIsBorderless(bool isBorderless);
+    void borderlessWindowEnabled(bool enabled);
     void alwaysOnTopEnabled(bool enabled);
 
 private:
@@ -33,6 +36,7 @@ private:
     QSystemTrayIcon         * trayIcon;
     QAction * viewWindowAction;
     QAction * alwaysOnTopAction;
+    QAction * borderlessWindowAction;
 };
 
 #endif // SYSTEMTRAY_H

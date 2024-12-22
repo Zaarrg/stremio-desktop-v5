@@ -15,6 +15,9 @@
         alwaysOnTopAction = new QAction(tr("Always on top"), this);
         alwaysOnTopAction->setCheckable(true);
 
+        borderlessWindowAction = new QAction(tr("Borderless Window"), this);
+        borderlessWindowAction->setCheckable(true);
+
         QAction * quitAction = new QAction(tr("Quit"), this);
 
         /* to connect the signals clicks on menu items to the appropriate signals for QML.
@@ -22,10 +25,12 @@
         connect(trayIconMenu, &QMenu::aboutToShow, this, &SystemTray::signalIconMenuAboutToShow);
         connect(viewWindowAction, &QAction::triggered, this, &SystemTray::signalShow);
         connect(alwaysOnTopAction, &QAction::triggered, this, &SystemTray::signalAlwaysOnTop);
+        connect(borderlessWindowAction, &QAction::triggered, this, &SystemTray::signalBorderlessWindow);
         connect(quitAction, &QAction::triggered, this, &SystemTray::signalQuit);
 
         trayIconMenu->addAction(viewWindowAction);
         trayIconMenu->addAction(alwaysOnTopAction);
+        trayIconMenu->addAction(borderlessWindowAction);
         trayIconMenu->addAction(quitAction);
 
 
@@ -86,4 +91,14 @@
     void SystemTray::alwaysOnTopEnabled(bool enabled)
     {
         alwaysOnTopAction->setEnabled(enabled);
+    }
+
+    void SystemTray::updateIsBorderless(bool isBorderless)
+    {
+        borderlessWindowAction->setChecked(isBorderless);
+    }
+
+    void SystemTray::borderlessWindowEnabled(bool enabled)
+    {
+        borderlessWindowAction->setEnabled(enabled);
     }

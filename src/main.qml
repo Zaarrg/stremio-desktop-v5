@@ -301,6 +301,15 @@ ApplicationWindow {
             }
         }
 
+        function onSignalBorderlessWindow() {
+            root.raise()
+            if (root.flags & Qt.FramelessWindowHint) {
+                root.flags &= ~Qt.FramelessWindowHint;
+            } else {
+                root.flags |= Qt.FramelessWindowHint;
+            }
+        }
+
         // The signal - close the application by ignoring the check-box
         function onSignalQuit() {
             quitApp();
