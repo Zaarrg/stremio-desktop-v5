@@ -407,7 +407,7 @@ ApplicationWindow {
 
     Connections {
         target: autoUpdateTransport
-        onShowUpdateScreen: {
+        function onShowUpdateScreen() {
             updateScreen.visible = true;
             updateScreen.focus = true;
         }

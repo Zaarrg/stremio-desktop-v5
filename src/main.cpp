@@ -48,16 +48,10 @@ int main(int argc, char **argv)
     qputenv("QTWEBENGINE_CHROMIUM_FLAGS", "--autoplay-policy=no-user-gesture-required --enable-gpu-rasterization --enable-oop-rasterization");
     qputenv("QT_QUICK_CONTROLS_MATERIAL_THEME", "Dark");
 
-    // TODO CHECK LINUX
-    Application::setAttribute(Qt::AA_EnableHighDpiScaling);
     Application::setApplicationName("Stremio");
     Application::setApplicationVersion(STREMIO_SHELL_VERSION);
     Application::setOrganizationName("Smart Code ltd");
     Application::setOrganizationDomain("stremio.com");
-
-    // Qt sets the locale in the QGuiApplication constructor, but libmpv
-    // requires the LC_NUMERIC category to be set to "C", so change it back.
-    std::setlocale(LC_NUMERIC, "C");
 
     // Ensure OpenGL
     QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
@@ -66,12 +60,17 @@ int main(int argc, char **argv)
     // **Instantiate your application object here**
     MainApp app(argc, argv, true);
 
+    // Qt sets the locale in the QGuiApplication constructor, but libmpv
+    // requires the LC_NUMERIC category to be set to "C", so change it back.
+    std::setlocale(LC_NUMERIC, "C");
+
     // Persistent Session
     QQuickWebEngineProfile* webEngineProfile = QQuickWebEngineProfile::defaultProfile();
+    webEngineProfile->setStorageName(QStringLiteral("Default"));
+    webEngineProfile->setPersistentStoragePath(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + QStringLiteral("/webengine"));
+    webEngineProfile->setCachePath(webEngineProfile->persistentStoragePath() + QStringLiteral("/Cache"));
     webEngineProfile->setPersistentCookiesPolicy(QQuickWebEngineProfile::ForcePersistentCookies);
     webEngineProfile->setOffTheRecord(false);
-    webEngineProfile->setStorageName(QStringLiteral("Default"));
-    webEngineProfile->setCachePath(webEngineProfile->persistentStoragePath() + QStringLiteral("/Cache"));
 
 #ifndef Q_OS_MACOS
     if( app.isSecondary() ) {

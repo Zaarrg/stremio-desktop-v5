@@ -64,7 +64,7 @@ Ensure the following are installed on your system:
 
 1. Clone the repository:
    ```cmd
-   git clone --recursive git@github.com:Stremio/stremio-shell.git
+   git clone --recursive git@github.com:Zaarrg/stremio-desktop-v5.git
    cd stremio-shell
    ```
 2. Update system Envs:
@@ -113,7 +113,7 @@ Ensure the following are installed on your system:
 
 2. Generate the installer:
    ```cmd
-   set package_version=5.0.0
+    FOR /F "tokens=4 delims=() " %i IN ('findstr /C:"project(stremio VERSION" CMakeLists.txt') DO @set "package_version=%~i"
    "C:\Program Files (x86)\NSIS\makensis.exe" utils\windows\installer\windows-installer.nsi
    ```
     - Result: `Stremio %package_version%.exe`.

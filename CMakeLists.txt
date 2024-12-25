@@ -13,6 +13,8 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
+set(QT_DEFAULT_MAJOR_VERSION 6)
+
 list(APPEND WEBENGINE_CONFIG use_proprietary_codecs)
 set(SOURCES
         src/main.cpp
@@ -36,7 +38,6 @@ set(SOURCES
 
 set(MPV_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/deps/libmpv/i686/include)
 if(WIN32)
-    set(QT_DEFAULT_MAJOR_VERSION 6)
     set(ENV{Qt6_DIR} $ENV{QTDIR})
     # Check if the system is 64-bit
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
