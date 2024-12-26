@@ -30,7 +30,7 @@ extern "C" {
 #define SERVER_FNAME "server.js"
 //#define ASAR_FNAME "stremio.asar"
 
-#define PARTIAL_UPDATE_FILES { SERVER_FNAME, "" }
+#define PARTIAL_UPDATE_FILES { SERVER_FNAME }
 
 #if defined(Q_OS_WIN)
     #define FULL_UPDATE_FILES { "windows" }

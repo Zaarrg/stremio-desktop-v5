@@ -80,30 +80,19 @@ Ensure the following are installed on your system:
    ```
 ---
 
-### 5️⃣ **Build the Shell**
+### 5️⃣ **Build / Deploying the Shell**
 
-1. Make sure to run the following in the `Developer Command Prompt for VS 2022`
+1. Make sure to run the following in the `x64 Native Tools Command Prompt for VS 2022`
 
-> **⏳ Note:** Make sure to set the Envs from step 4.2
-
-2. Generate the build files:
+2. Run the deployment script in the ``build`` folder
    ```cmd
-   cmake -G"NMake Makefiles" -DCMAKE_BUILD_TYPE=Release ..
+   node deploy_windows.js --installer
    ```
-3. Compile:
-   ```cmd
-   cmake --build .
-   ```
+> **⏳ Note:** This script uses common paths for ``qt`` and ``openssl`` make sure those are installed. If running with ``--installer`` make sure u installed ``nsis`` with the needed ``nsprocess`` plugin at least once.
 
-4. Build distributable
-   ```cmd
-   build_windows.bat {cmake-build-folder} {openssl-bin}
-   
-   build_windows.bat cmake-build-release "C:\Program Files\OpenSSL-Win64\bin"
-   ```
+3. Done. This will build the `installer` and ``dist/win`` folder.
 
-
-> **⏳ Note:** This will create `dist-win` with all necessary files like `node.exe`, `ffmpeg.exe`. Also make sure to have `node.exe, stremio-runtime.exe, server.js` are in `utils\windows\` folder
+> **⏳ Note:** This will create `dist/win` with all necessary files like `node.exe`, `ffmpeg.exe`. Also make sure to have `node.exe, stremio-runtime.exe, server.js` are in `utils\windows\` folder
 ---
 
 ## 📦 Installer (Optional)

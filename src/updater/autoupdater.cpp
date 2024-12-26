@@ -218,7 +218,7 @@ void AutoUpdater::prepareUpdate(QJsonDocument versionDescDoc) {
         || versionDesc.value("shellVersion").toString() != QCoreApplication::applicationVersion()
     ) {
         toDownload = FULL_UPDATE_FILES;
-    } else if (files.value(PARTIAL_UPDATE_FILES).toObject().value("checksum").toString() != serverHashHex) {
+    } else if (files.value(SERVER_FNAME).toObject().value("checksum").toString() != serverHashHex) {
         toDownload = PARTIAL_UPDATE_FILES;
     } else {
         qDebug() << "Everything is up to date";
