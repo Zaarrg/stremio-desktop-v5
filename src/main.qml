@@ -32,6 +32,10 @@ ApplicationWindow {
     title: appTitle
 
     property var previousVisibility: Window.Windowed
+    property var previousX
+    property var previousY
+    property var previousWidth
+    property var previousHeight
     property bool wasFullScreen: false
 
     //
@@ -210,7 +214,6 @@ ApplicationWindow {
         readonly property string shellVersion: Qt.application.version
         property string serverAddress: "http://127.0.0.1:11470" // will be set to something else if server inits on another port
 
-        readonly property bool isFullscreen: root.visibility === Window.FullScreen // just to send the initial state
 
         signal event(var ev, var args)
         function onEvent(ev, args) {
@@ -611,7 +614,7 @@ ApplicationWindow {
     }
 
     onVisibilityChanged: {
-        var enabledAlwaysOnTop = root.visible && root.visibility != Window.FullScreen;
+        var enabledAlwaysOnTop = root.visible && !root.wasFullScreen;
         systemTray.alwaysOnTopEnabled(enabledAlwaysOnTop);
         if (!enabledAlwaysOnTop) {
             root.flags &= ~Qt.WindowStaysOnTopHint;
@@ -619,7 +622,7 @@ ApplicationWindow {
 
         updatePreviousVisibility();
         transport.event("win-visibility-changed", { visible: root.visible, visibility: root.visibility,
-            isFullscreen: root.visibility === Window.FullScreen })
+            isFullscreen: root.wasFullScreen })
     }
 
     property int appState: Qt.application.state;
@@ -731,11 +734,22 @@ ApplicationWindow {
     //
 
     function setFullScreen(fullscreen) {
+        //Sets Borderless Fullscreen (Borderless fixes many issues on windows + hdr)
+        if (!root.wasFullScreen) {
+            [root.previousX, root.previousY, root.previousWidth, root.previousHeight] =
+                [root.x, root.y, root.width, root.height];
+        }
         if (fullscreen) {
-            root.visibility = Window.FullScreen;
+            root.flags |= Qt.FramelessWindowHint;
+            root.x = Screen.virtualX;
+            root.y = Screen.virtualY - 1;
+            root.width = Screen.width;
+            root.height = Screen.height + 1;
             root.wasFullScreen = true;
         } else {
-            root.visibility = root.previousVisibility;
+            root.flags &= ~Qt.FramelessWindowHint;
+            [root.x, root.y, root.width, root.height] =
+                [root.previousX, root.previousY, root.previousWidth, root.previousHeight];
             root.wasFullScreen = false;
         }
     }
@@ -743,7 +757,8 @@ ApplicationWindow {
     // System tray function
     function showWindow() {
         if (root.wasFullScreen) {
-            root.visibility = Window.FullScreen;
+            setFullScreen(true);
+            root.visible = true;
         } else {
             root.visibility = root.previousVisibility;
         }
@@ -752,7 +767,7 @@ ApplicationWindow {
     }
 
     function updatePreviousVisibility() {
-        if (root.visible && root.visibility != Window.FullScreen && root.visibility != Window.Minimized) {
+        if (root.visible && !root.wasFullScreen && root.visibility != Window.Minimized) {
             root.previousVisibility = root.visibility;
         }
     }
