@@ -124,7 +124,7 @@ ApplicationWindow {
 
         // In the app, we use open-external IPC signal, but make sure this works anyway
         property string hoveredLink: ""
-        onLinkHovered: hoveredLink = url
+        onLinkHovered: function(url) { hoveredLink = url }
         onNewWindowRequested: function(req) { if (req.userInitiated) Qt.openUrlExternally(hoveredLink) }
 
         // FIXME: When is this called?
