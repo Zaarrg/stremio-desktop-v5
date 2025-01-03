@@ -151,14 +151,27 @@ void MpvObject::initialize_mpv() {
 
     // Enable opengl-hwdec-interop so we can set hwdec at runtime
     mpv::qt::set_property(mpv, "gpu-hwdec-interop", "auto");
+    mpv::qt::set_property(mpv, "hwdec", "auto");
 
-    // No need to set, will be auto-detected
-    //mpv::qt::set_property(mpv, "opengl-backend", "angle");
+    // Shorten probe size and analyzeduration to reduce initial demux overhead. (Faster playback start)
+    mpv::qt::set_property(mpv, "demuxer-lavf-probesize", 524288);       // 512KB
+    mpv::qt::set_property(mpv, "demuxer-lavf-analyzeduration", 0.5f);   // in seconds
 
-    // Set cache to a reasonable value
-    mpv::qt::set_property(mpv, "cache-default", 15000);
-    mpv::qt::set_property(mpv, "cache-backbuffer", 15000);
-    mpv::qt::set_property(mpv, "cache-secs", 10);
+    // Increase max bytes/packets to allow for 60s cache-secs. Default 150mb/75mb
+    mpv::qt::set_property(mpv, "demuxer-max-bytes", 300000000);
+    mpv::qt::set_property(mpv, "demuxer-max-packets", 150000000);
+
+    // Buffer / Cache Settings
+    mpv::qt::set_property(mpv, "cache", "yes");
+    mpv::qt::set_property(mpv, "cache-pause", "no");
+    mpv::qt::set_property(mpv, "cache-secs", 60); // Limited by demuxer-max-bytes
+
+    // More threads for decoding
+    mpv::qt::set_property(mpv, "vd-lavc-threads", 0);
+    mpv::qt::set_property(mpv, "ad-lavc-threads", 0);
+
+    // Use seeking to the nearest keyframe for faster seeking
+    mpv::qt::set_property(mpv, "hr-seek", "no");
 
     // Visible app / stream names
     mpv::qt::set_property(mpv, "audio-client-name", QCoreApplication::applicationName());
