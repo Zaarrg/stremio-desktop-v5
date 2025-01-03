@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.30)
 
-project(stremio VERSION "5.0.3")
+project(stremio VERSION "5.0.4")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMakeModules/")
 
