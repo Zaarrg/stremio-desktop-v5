@@ -1,9 +1,9 @@
 {
-  "shellVersion": "5.0.4",
+  "shellVersion": "5.0.5",
   "files": {
     "windows": {
-      "url": "https://github.com/Zaarrg/stremio-desktop-v5/releases/download/5.0.0-beta.5/Stremio.5.0.4.exe",
-      "checksum": "9839d977788de2c22150a8c67163676b92c25531ca15dfd2f24930def71ecd08"
+      "url": "https://github.com/Zaarrg/stremio-desktop-v5/releases/download/5.0.0-beta.6/Stremio.5.0.5.exe",
+      "checksum": "de7496b60c06e1f9aa88a2ebc1be71c4d3a0cef0a2c3f5b37c676794f2443378"
     },
     "server.js": {
       "url": "https://dl.strem.io/server/v4.20.8/desktop/server.js",
