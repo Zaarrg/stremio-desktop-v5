@@ -23,6 +23,7 @@
 - 🚀 **Latest Technology**: Built with Qt6 to provide the newest features and best performance
 - 🌐 **Latest Web Ui**: Always up-to-date with Stremio Web v5
 - 🎞️ **Native Playback**: Integrated Player for native 4K playback, hardware decoding, and fastest video performance
+- 🔍 **Video Upscaling**:  Upscaling support through mpv configuration file ``mpv.conf``
 
 <p align="center">
   <img src="https://i.imgur.com/xvM5lp8.png" alt="Stremio Web Desktop Screenshot" width="600" />
@@ -53,6 +54,8 @@ Use these extra arguments when launching the application:
 | --autoupdater-endpoint=           | --autoupdater-endpoint==https://verison.mydomain.com/ | Overrides default checking endpoint for the autoupdater                                                         |
 
 > **⏳ Note:** By default will use as ``webui-url`` the [stremio-web-shell](https://github.com/Zaarrg/stremio-web-shell-fixes) web-ui hosted [here](https://zaarrg.github.io/stremio-web-shell-fixes/#/) which includes fixes to run smoothly with qt6
+
+> **⏳ Note:** The ``mpv.conf`` can be located in the installation path ``%localAppData%\Programs\LNV\Stremio-5\mpv.conf`` as well as the ``shaders`` folder
 
 ## 📚 **Guide / Docs**
 If you want to build this app yourself, check the “docs” folder in this repository for setup instructions and additional information.
