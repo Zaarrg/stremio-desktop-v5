@@ -64,7 +64,7 @@ Enhance your Stremio experience by customizing the MPV player settings. Below ar
         - **Installation Path:** ``%localAppData%\Programs\LNV\Stremio-5\mpv.conf``
         - **Shaders Folder:** Located within the installation directory ``..\Stremio-5\shaders``.
 
-> **⏳ Note:** Any other configuration files can be just dropped into ``%localAppData%\Programs\LNV\Stremio-5\`` as this is the mpv ``config-dir``
+> **⏳ Note:** Any other configuration files can be just dropped into ``%localAppData%\Programs\LNV\Stremio-5\`` as this is the mpv ``config-dir`` like ``input.conf``
 
   - **🎹 Usage example in `input.conf` using Anime4k:**
     ```shell
