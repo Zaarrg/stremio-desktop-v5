@@ -29,6 +29,7 @@ const NODE_EXE = path.join(SOURCE_DIR, 'utils', 'windows', 'node.exe');
 const DS_FOLDER = path.join(SOURCE_DIR, 'utils', 'windows', 'DS');
 const STREMIO_RUNTIME_EXE = path.join(SOURCE_DIR, 'utils', 'windows', 'stremio-runtime.exe');
 const FFMPEG_FOLDER = path.join(SOURCE_DIR, 'utils', 'windows', 'ffmpeg');
+const MPV_FOLDER = path.join(SOURCE_DIR, 'utils', 'mpv');
 
 // Default Paths
 const DEFAULT_OPENSSL_BIN = 'C:\\Program Files\\OpenSSL-Win64\\bin';
@@ -120,6 +121,7 @@ const DEFAULT_NSIS = 'C:\\Program Files (x86)\\NSIS\\makensis.exe';
         copyFolderContents(DS_FOLDER, DIST_DIR);
         copyFile(STREMIO_RUNTIME_EXE, path.join(DIST_DIR, 'stremio-runtime.exe'));
         copyFolderContents(FFMPEG_FOLDER, DIST_DIR);
+        copyFolderContentsPreservingStructure(MPV_FOLDER, DIST_DIR);
 
         // 9) Run windeployqt.exe
         console.log('\n=== Deploying Qt dependencies ===');
@@ -195,6 +197,44 @@ function copyFolderContents(src, dest) {
         if (itemStats.isDirectory()) {
             copyFolderContents(srcItem, dest);
         } else {
+            copyFile(srcItem, destItem);
+        }
+    }
+}
+
+/**
+ * Copies the contents of `src` into `dest` without flattening.
+ * Subdirectories in `src` will be recreated in `dest`.
+ */
+function copyFolderContentsPreservingStructure(src, dest) {
+    if (!fs.existsSync(src)) {
+        console.warn(`Warning: missing folder: ${src}`);
+        return;
+    }
+
+    const stats = fs.statSync(src);
+    if (!stats.isDirectory()) {
+        console.warn(`Warning: not a directory: ${src}`);
+        return;
+    }
+
+    // Ensure destination directory exists
+    if (!fs.existsSync(dest)) {
+        fs.mkdirSync(dest, { recursive: true });
+    }
+
+    const items = fs.readdirSync(src);
+
+    for (const item of items) {
+        const srcItem = path.join(src, item);
+        const destItem = path.join(dest, item);
+        const itemStats = fs.statSync(srcItem);
+
+        if (itemStats.isDirectory()) {
+            // Recursively copy subdirectories
+            copyFolderContentsPreservingStructure(srcItem, destItem);
+        } else {
+            // Copy files
             copyFile(srcItem, destItem);
         }
     }

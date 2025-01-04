@@ -142,6 +142,10 @@ void MpvObject::initialize_mpv() {
     // terminal=yes brings us all the terminal logs; on windows it's much better with winpty (https://github.com/mpv-player/mpv/blob/master/DOCS/compile-windows.md)
     mpv_set_option_string(mpv, "terminal", "yes");
     mpv_set_option_string(mpv, "msg-level", "all=v");
+    // Set mpv.conf path to appDirPath. Can be used by users to apply mpv profiles using Conditional auto profiles with profile-cond property
+    QString configPath = QCoreApplication::applicationDirPath();
+    mpv_set_option_string(mpv, "config-dir", configPath.toUtf8().constData());
+    mpv_set_option_string(mpv, "config", "yes");
 
     if (mpv_initialize(mpv) < 0)
         throw std::runtime_error("could not initialize mpv context");
@@ -169,9 +173,6 @@ void MpvObject::initialize_mpv() {
     // More threads for decoding
     mpv::qt::set_property(mpv, "vd-lavc-threads", 0);
     mpv::qt::set_property(mpv, "ad-lavc-threads", 0);
-
-    // Use seeking to the nearest keyframe for faster seeking
-    mpv::qt::set_property(mpv, "hr-seek", "no");
 
     // Visible app / stream names
     mpv::qt::set_property(mpv, "audio-client-name", QCoreApplication::applicationName());

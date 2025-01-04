@@ -43,8 +43,10 @@ ShowUninstDetails "nevershow"
 CRCCheck on
 ;SetCompressor /SOLID lzma
 ;SetCompressorDictSize 4
-SetCompressor lzma
-SetCompressorDictSize 1
+;SetCompressor lzma
+;SetCompressorDictSize 1
+SetCompressor /SOLID lzma
+SetCompressorDictSize 128
 
 ;Default installation folder
 InstallDir "$LOCALAPPDATA\Programs\LNV\${APP_NAME}-${VERSION_MAJOR}"
