@@ -40,46 +40,6 @@
 2.**Windows (x86), macOS, Linux**
 - Coming soon!
 
-## ⚙️ **Start Arguments**
-Use these extra arguments when launching the application:
-
-| Argument            | Example                                               | Description                                                                                                     |
-|---------------------|-------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------|
-| --development       |                                                       | Loads from `http://127.0.0.1:11470` instead of `https://app.strem.io` and does not force start streaming server |
-| --staging           |                                                       | Loads web ui from `https://staging.strem.io`                                                                    |
-| --webui-url=        | --webui-url=https://web.stremio.com/                  | Loads web ui from `https://web.stremio.com/`                                                                    |
-| --streaming-server  |                                                       | When used with `development`, it would try to start a streaming server. Default behaviour in prod               |
-| --autoupdater-force |                                                       | Forces Autoupdater to check for a new version                                                                   |
-| --autoupdater-force-full           |                                                       | Forces Autoupdate to always do a `full-update` rather than `partial`                                            |
-| --autoupdater-endpoint=           | --autoupdater-endpoint==https://verison.mydomain.com/ | Overrides default checking endpoint for the autoupdater                                                         |
-
-> **⏳ Note:** By default will use as ``webui-url`` the [stremio-web-shell](https://github.com/Zaarrg/stremio-web-shell-fixes) web-ui hosted [here](https://zaarrg.github.io/stremio-web-shell-fixes/#/) which includes fixes to run smoothly with qt6
-
-## 🎛️ **Mpv Configuration**
-
-Enhance your Stremio experience by customizing the MPV player settings. Below are the key configuration files and guidelines to help you get started:
-
-- 📁 **`mpv.conf` Location**
-    - The ``mpv.conf`` file can be found in the following location:
-        - **Installation Path:** ``%localAppData%\Programs\LNV\Stremio-5\portable_config\mpv.conf``
-        - **Shaders Folder:** Located within the installation directory ``..\Stremio-5\portable_config\shaders``.
-
-> **⏳ Note:** Any other configuration files can be just dropped into ``%localAppData%\Programs\LNV\Stremio-5\portable_config`` as this is the mpv ``config-dir`` like ``input.conf``
-
-  - **🎹 Usage example in `input.conf` using [Anime4k](https://github.com/bloc97/Anime4K):**
-    ```shell
-    # Optimized shaders for higher-end GPU
-    CTRL+1 no-osd change-list glsl-shaders set "~~/shaders/Anime4K_Clamp_Highlights.glsl;~~/shaders/Anime4K_Restore_CNN_VL.glsl;~~/shaders/Anime4K_Upscale_CNN_x2_VL.glsl;~~/shaders/Anime4K_AutoDownscalePre_x2.glsl;~~/shaders/Anime4K_AutoDownscalePre_x4.glsl;~~/shaders/Anime4K_Upscale_CNN_x2_M.glsl"; show-text "Anime4K: Mode A (HQ)"
-    CTRL+2 no-osd change-list glsl-shaders set "~~/shaders/Anime4K_Clamp_Highlights.glsl;~~/shaders/Anime4K_Restore_CNN_Soft_VL.glsl;~~/shaders/Anime4K_Upscale_CNN_x2_VL.glsl;~~/shaders/Anime4K_AutoDownscalePre_x2.glsl;~~/shaders/Anime4K_AutoDownscalePre_x4.glsl;~~/shaders/Anime4K_Upscale_CNN_x2_M.glsl"; show-text "Anime4K: Mode B (HQ)"
-    CTRL+3 no-osd change-list glsl-shaders set "~~/shaders/Anime4K_Clamp_Highlights.glsl;~~/shaders/Anime4K_Upscale_Denoise_CNN_x2_VL.glsl;~~/shaders/Anime4K_AutoDownscalePre_x2.glsl;~~/shaders/Anime4K_AutoDownscalePre_x4.glsl;~~/shaders/Anime4K_Upscale_CNN_x2_M.glsl"; show-text "Anime4K: Mode C (HQ)"
-    CTRL+4 no-osd change-list glsl-shaders set "~~/shaders/Anime4K_Clamp_Highlights.glsl;~~/shaders/Anime4K_Restore_CNN_VL.glsl;~~/shaders/Anime4K_Upscale_CNN_x2_VL.glsl;~~/shaders/Anime4K_Restore_CNN_M.glsl;~~/shaders/Anime4K_AutoDownscalePre_x2.glsl;~~/shaders/Anime4K_AutoDownscalePre_x4.glsl;~~/shaders/Anime4K_Upscale_CNN_x2_M.glsl"; show-text "Anime4K: Mode A+A (HQ)"
-    CTRL+5 no-osd change-list glsl-shaders set "~~/shaders/Anime4K_Clamp_Highlights.glsl;~~/shaders/Anime4K_Restore_CNN_Soft_VL.glsl;~~/shaders/Anime4K_Upscale_CNN_x2_VL.glsl;~~/shaders/Anime4K_AutoDownscalePre_x2.glsl;~~/shaders/Anime4K_AutoDownscalePre_x4.glsl;~~/shaders/Anime4K_Restore_CNN_Soft_M.glsl;~~/shaders/Anime4K_Upscale_CNN_x2_M.glsl"; show-text "Anime4K: Mode B+B (HQ)"
-    CTRL+6 no-osd change-list glsl-shaders set "~~/shaders/Anime4K_Clamp_Highlights.glsl;~~/shaders/Anime4K_Upscale_Denoise_CNN_x2_VL.glsl;~~/shaders/Anime4K_AutoDownscalePre_x2.glsl;~~/shaders/Anime4K_AutoDownscalePre_x4.glsl;~~/shaders/Anime4K_Restore_CNN_M.glsl;~~/shaders/Anime4K_Upscale_CNN_x2_M.glsl"; show-text "Anime4K: Mode C+A (HQ)"
-    
-    CTRL+0 no-osd change-list glsl-shaders clr ""; show-text "GLSL shaders cleared"
-    ```
-> **⏳ Note:** Some keys might not work as key presses are converted from js event.codes to literal values for mpv
-
 ## 🔍 **Mpv Upscalers**
 
 - 🎥 **[Anime4k](https://github.com/bloc97/Anime4K)**
@@ -111,9 +71,48 @@ Enhance your Stremio experience by customizing the MPV player settings. Below ar
 > **⏳ Note:** Nvidia RTX and Intel VSR Scaling support might take some time as this requires quite a big rewrite to support mpv wid embedding with d3d as current libmpv implementation only supports opengl and this as well will allow for proper hdr support.
 
 
-## 📚 **Guide / Docs**
-If you want to build this app yourself, check the “docs” folder in this repository for setup instructions and additional information.
+## 🎛️ **Mpv Configuration**
 
+Enhance your Stremio experience by customizing the MPV player settings. Below are the key configuration files and guidelines to help you get started:
+
+- 📁 **`mpv.conf` Location**
+    - The ``mpv.conf`` file can be found in the following location:
+        - **Installation Path:** ``%localAppData%\Programs\LNV\Stremio-5\portable_config\mpv.conf``
+        - **Shaders Folder:** Located within the installation directory ``..\Stremio-5\portable_config\shaders``.
+
+> **⏳ Note:** Any other configuration files can be just dropped into ``%localAppData%\Programs\LNV\Stremio-5\portable_config`` as this is the mpv ``config-dir`` like ``input.conf``
+
+  - **🎹 Usage example in `input.conf` using [Anime4k](https://github.com/bloc97/Anime4K):**
+    ```shell
+    # Optimized shaders for higher-end GPU
+    CTRL+1 no-osd change-list glsl-shaders set "~~/shaders/Anime4K_Clamp_Highlights.glsl;~~/shaders/Anime4K_Restore_CNN_VL.glsl;~~/shaders/Anime4K_Upscale_CNN_x2_VL.glsl;~~/shaders/Anime4K_AutoDownscalePre_x2.glsl;~~/shaders/Anime4K_AutoDownscalePre_x4.glsl;~~/shaders/Anime4K_Upscale_CNN_x2_M.glsl"; show-text "Anime4K: Mode A (HQ)"
+    CTRL+2 no-osd change-list glsl-shaders set "~~/shaders/Anime4K_Clamp_Highlights.glsl;~~/shaders/Anime4K_Restore_CNN_Soft_VL.glsl;~~/shaders/Anime4K_Upscale_CNN_x2_VL.glsl;~~/shaders/Anime4K_AutoDownscalePre_x2.glsl;~~/shaders/Anime4K_AutoDownscalePre_x4.glsl;~~/shaders/Anime4K_Upscale_CNN_x2_M.glsl"; show-text "Anime4K: Mode B (HQ)"
+    CTRL+3 no-osd change-list glsl-shaders set "~~/shaders/Anime4K_Clamp_Highlights.glsl;~~/shaders/Anime4K_Upscale_Denoise_CNN_x2_VL.glsl;~~/shaders/Anime4K_AutoDownscalePre_x2.glsl;~~/shaders/Anime4K_AutoDownscalePre_x4.glsl;~~/shaders/Anime4K_Upscale_CNN_x2_M.glsl"; show-text "Anime4K: Mode C (HQ)"
+    CTRL+4 no-osd change-list glsl-shaders set "~~/shaders/Anime4K_Clamp_Highlights.glsl;~~/shaders/Anime4K_Restore_CNN_VL.glsl;~~/shaders/Anime4K_Upscale_CNN_x2_VL.glsl;~~/shaders/Anime4K_Restore_CNN_M.glsl;~~/shaders/Anime4K_AutoDownscalePre_x2.glsl;~~/shaders/Anime4K_AutoDownscalePre_x4.glsl;~~/shaders/Anime4K_Upscale_CNN_x2_M.glsl"; show-text "Anime4K: Mode A+A (HQ)"
+    CTRL+5 no-osd change-list glsl-shaders set "~~/shaders/Anime4K_Clamp_Highlights.glsl;~~/shaders/Anime4K_Restore_CNN_Soft_VL.glsl;~~/shaders/Anime4K_Upscale_CNN_x2_VL.glsl;~~/shaders/Anime4K_AutoDownscalePre_x2.glsl;~~/shaders/Anime4K_AutoDownscalePre_x4.glsl;~~/shaders/Anime4K_Restore_CNN_Soft_M.glsl;~~/shaders/Anime4K_Upscale_CNN_x2_M.glsl"; show-text "Anime4K: Mode B+B (HQ)"
+    CTRL+6 no-osd change-list glsl-shaders set "~~/shaders/Anime4K_Clamp_Highlights.glsl;~~/shaders/Anime4K_Upscale_Denoise_CNN_x2_VL.glsl;~~/shaders/Anime4K_AutoDownscalePre_x2.glsl;~~/shaders/Anime4K_AutoDownscalePre_x4.glsl;~~/shaders/Anime4K_Restore_CNN_M.glsl;~~/shaders/Anime4K_Upscale_CNN_x2_M.glsl"; show-text "Anime4K: Mode C+A (HQ)"
+    
+    CTRL+0 no-osd change-list glsl-shaders clr ""; show-text "GLSL shaders cleared"
+    ```
+> **⏳ Note:** Some keys might not work as key presses are converted from js event.codes to literal values for mpv
+
+## ⚙️ **Start Arguments**
+Use these extra arguments when launching the application:
+
+| Argument            | Example                                               | Description                                                                                                     |
+|---------------------|-------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------|
+| --development       |                                                       | Loads from `http://127.0.0.1:11470` instead of `https://app.strem.io` and does not force start streaming server |
+| --staging           |                                                       | Loads web ui from `https://staging.strem.io`                                                                    |
+| --webui-url=        | --webui-url=https://web.stremio.com/                  | Loads web ui from `https://web.stremio.com/`                                                                    |
+| --streaming-server  |                                                       | When used with `development`, it would try to start a streaming server. Default behaviour in prod               |
+| --autoupdater-force |                                                       | Forces Autoupdater to check for a new version                                                                   |
+| --autoupdater-force-full           |                                                       | Forces Autoupdate to always do a `full-update` rather than `partial`                                            |
+| --autoupdater-endpoint=           | --autoupdater-endpoint==https://verison.mydomain.com/ | Overrides default checking endpoint for the autoupdater                                                         |
+
+> **⏳ Note:** By default will use as ``webui-url`` the [stremio-web-shell](https://github.com/Zaarrg/stremio-web-shell-fixes) web-ui hosted [here](https://zaarrg.github.io/stremio-web-shell-fixes/#/) which includes fixes to run smoothly with qt6
+
+## 📚 **Guide / Docs**
+If you want to build this app yourself, check the “[docs](https://github.com/Zaarrg/stremio-desktop-v5/tree/master/docs)” folder in this repository for setup instructions and additional information.
 
 ## ⚠️ **Disclaimer**
 This project is not affiliated with **Stremio** in any way.
