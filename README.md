@@ -108,7 +108,7 @@ Enhance your Stremio experience by customizing the MPV player settings. Below ar
 - 🚀 **Nvidia RTX and Intel VSR Scaling**
     - 🔜 Coming soon!
 
-> **⏳ Note:** Nvidia RTX and Intel VSR Scaling support might take some time as this requires quite a big rewrite to support mpv wid embedding with d3d as current libmpv implementation only supports opengl
+> **⏳ Note:** Nvidia RTX and Intel VSR Scaling support might take some time as this requires quite a big rewrite to support mpv wid embedding with d3d as current libmpv implementation only supports opengl and this as well will allow for proper hdr support.
 
 
 ## 📚 **Guide / Docs**
