@@ -61,10 +61,10 @@ Enhance your Stremio experience by customizing the MPV player settings. Below ar
 
 - 📁 **`mpv.conf` Location**
     - The ``mpv.conf`` file can be found in the following location:
-        - **Installation Path:** ``%localAppData%\Programs\LNV\Stremio-5\mpv.conf``
-        - **Shaders Folder:** Located within the installation directory ``..\Stremio-5\shaders``.
+        - **Installation Path:** ``%localAppData%\Programs\LNV\Stremio-5\portable_config\mpv.conf``
+        - **Shaders Folder:** Located within the installation directory ``..\Stremio-5\portable_config\shaders``.
 
-> **⏳ Note:** Any other configuration files can be just dropped into ``%localAppData%\Programs\LNV\Stremio-5\`` as this is the mpv ``config-dir`` like ``input.conf``
+> **⏳ Note:** Any other configuration files can be just dropped into ``%localAppData%\Programs\LNV\Stremio-5\portable_config`` as this is the mpv ``config-dir`` like ``input.conf``
 
   - **🎹 Usage example in `input.conf` using Anime4k:**
     ```shell
@@ -79,6 +79,26 @@ Enhance your Stremio experience by customizing the MPV player settings. Below ar
     CTRL+0 no-osd change-list glsl-shaders clr ""; show-text "GLSL shaders cleared"
     ```
 > **⏳ Note:** Some keys might not work as key presses are converted from js event.codes to literal values for mpv
+
+## 🔍 **Mpv Upscalers**
+
+- 🎥 **Anime4k**
+    - ✅ Included by default.
+    - 🔢 Use `CTRL+1` - `CTRL+6` to enable shaders.
+    - ❌ Use `CTRL+0` to disable.
+
+- 🎨 **AnimeJaNai**
+    - ❌ Not included by default.
+    - 📥 Download from the **Stremio-Desktop-v5** [release tab](https://github.com/Zaarrg/stremio-desktop-v5) the adjusted version for Stremio.
+        - 🛠️ **Changes made:**
+            - Removed `mpvnet.exe` as Stremio is used as the player.
+            - Adjusted `mpv.conf` to work with Stremio.
+            - Adjusted `input.conf` to work with Stremio.
+
+- 🚀 **Nvidia RTX and Intel VSR Scaling**
+    - 🔜 Coming soon!
+
+
 
 ## 📚 **Guide / Docs**
 If you want to build this app yourself, check the “docs” folder in this repository for setup instructions and additional information.

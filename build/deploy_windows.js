@@ -29,7 +29,7 @@ const NODE_EXE = path.join(SOURCE_DIR, 'utils', 'windows', 'node.exe');
 const DS_FOLDER = path.join(SOURCE_DIR, 'utils', 'windows', 'DS');
 const STREMIO_RUNTIME_EXE = path.join(SOURCE_DIR, 'utils', 'windows', 'stremio-runtime.exe');
 const FFMPEG_FOLDER = path.join(SOURCE_DIR, 'utils', 'windows', 'ffmpeg');
-const MPV_FOLDER = path.join(SOURCE_DIR, 'utils', 'mpv');
+const MPV_FOLDER = path.join(SOURCE_DIR, 'utils', 'mpv', 'anime4k');
 
 // Default Paths
 const DEFAULT_OPENSSL_BIN = 'C:\\Program Files\\OpenSSL-Win64\\bin';

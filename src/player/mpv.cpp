@@ -5,6 +5,7 @@
 
 #include <QObject>
 #include <QJsonObject>
+#include <QDir>
 
 #include <QtGlobal>
 #include <QOpenGLContext>
@@ -142,8 +143,14 @@ void MpvObject::initialize_mpv() {
     // terminal=yes brings us all the terminal logs; on windows it's much better with winpty (https://github.com/mpv-player/mpv/blob/master/DOCS/compile-windows.md)
     mpv_set_option_string(mpv, "terminal", "yes");
     mpv_set_option_string(mpv, "msg-level", "all=v");
-    // Set mpv.conf path to appDirPath. Can be used by users to apply mpv profiles using Conditional auto profiles with profile-cond property
-    QString configPath = QCoreApplication::applicationDirPath();
+    // Set mpv.conf path to appDirPath/portable_config. Can be used by users to apply mpv profiles using Conditional auto profiles with profile-cond property
+    QString appDirPath = QCoreApplication::applicationDirPath();
+    QString configPath = appDirPath + QDir::separator() + "portable_config";
+    bool success = QDir().mkpath(configPath);
+    if (!success) {
+        qWarning("Failed to create portable_config directory.");
+    }
+    // Set the "config-dir" option for mpv
     mpv_set_option_string(mpv, "config-dir", configPath.toUtf8().constData());
     mpv_set_option_string(mpv, "config", "yes");
 

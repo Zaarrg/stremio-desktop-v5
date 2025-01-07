@@ -309,6 +309,7 @@ Section "uninstall"
     IfErrors 0 KeepUserData
     notsilent:
       RMDir /r "$LOCALAPPDATA\${COMPANY_NAME}"
+      RMDir /r "$APPDATA\${COMPANY_NAME}"
       RMDir /r "$APPDATA\${DATA_FOLDER}"
     KeepUserData:
 
