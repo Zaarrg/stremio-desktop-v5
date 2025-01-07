@@ -26,7 +26,7 @@ const BLOC97_API_URL = 'https://api.github.com/repos/bloc97/Anime4K/releases/lat
 const TEMP_DIR = path.join(os.tmpdir(), 'anime4k_build_temp');
 const OUTPUT_DIR = path.resolve(__dirname, '..', 'utils', 'mpv');
 const OUTPUT_ZIP_NAME = 'anime4k-High-end.zip';
-const EXTRACTION_DIR = path.join(OUTPUT_DIR, 'anime4k');
+const EXTRACTION_DIR = path.join(OUTPUT_DIR, 'anime4k', 'portable_config');
 
 // Common 7z.exe installation paths on Windows
 const COMMON_7Z_PATHS = [
@@ -184,12 +184,44 @@ function find7zExecutable() {
         execCommand(`${sevenZipPath} x "${outputZipPath}" -o"${EXTRACTION_DIR}" -y`);
         console.log('Extraction complete.');
 
+        // Path to the mpv.conf file inside the extraction directory
+        const mpvConfPath = path.join(EXTRACTION_DIR, 'mpv.conf');
+
+        // Check if mpv.conf exists before attempting to modify it
+        if (fs.existsSync(mpvConfPath)) {
+            console.log(`Modifying ${mpvConfPath} to comment out glsl-shaders lines...`);
+            // Read the existing content of mpv.conf
+            let confData = fs.readFileSync(mpvConfPath, 'utf8');
+            // Split the file into lines
+            const lines = confData.split(/\r?\n/);
+            // Map over lines to comment out ones that start with 'glsl-shaders='
+            const modifiedLines = lines.map(line => {
+                // Trim whitespace at beginning of line for accurate check
+                const trimmedLine = line.trim();
+                if (trimmedLine.startsWith('glsl-shaders=')) {
+                    // If not already commented out, add a comment marker
+                    if (!trimmedLine.startsWith('#')) {
+                        return `# ${line}`;
+                    }
+                }
+                return line;
+            });
+            // Join the modified lines back together
+            confData = modifiedLines.join(os.EOL);
+            // Write the changes back to mpv.conf
+            fs.writeFileSync(mpvConfPath, confData, 'utf8');
+            console.log('Modification complete.');
+        } else {
+            console.log(`Warning: ${mpvConfPath} not found. Skipping modification.`);
+        }
+
         // Cleanup
         console.log(`Cleaning up temporary files at ${TEMP_DIR}...`);
         fs.rmSync(TEMP_DIR, { recursive: true, force: true });
         console.log('Cleanup complete.');
 
         console.log('=== Build Anime4K Script Completed Successfully ===');
+        process.exit(1);
     } catch (error) {
         console.error('Error during build:', error.message);
         process.exit(1);

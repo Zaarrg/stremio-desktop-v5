@@ -89,15 +89,19 @@ Enhance your Stremio experience by customizing the MPV player settings. Below ar
 
 - 🎨 **AnimeJaNai**
     - ❌ Not included by default.
-    - 📥 Download from the **Stremio-Desktop-v5** [release tab](https://github.com/Zaarrg/stremio-desktop-v5) the adjusted version for Stremio.
+    - 📥 Download from the **Stremio-Desktop-v5** [release tab](https://github.com/Zaarrg/stremio-desktop-v5) the `stremio-animejanai-3.x.x.7z` for Stremio and drop the content of the 7z into `%localAppData%\Programs\LNV\Stremio-5\` and `replace all`
         - 🛠️ **Changes made:**
             - Removed `mpvnet.exe` as Stremio is used as the player.
             - Adjusted `mpv.conf` to work with Stremio.
             - Adjusted `input.conf` to work with Stremio.
 
+> **⏳ Note:** When using AnimeJaNai on first playback Stremio will be unresponsive and a console will open to build the model via e.g. TensorRT. You will need to wait until the console closes for playback to start. This happens only once per model.
+
+
 - 🚀 **Nvidia RTX and Intel VSR Scaling**
     - 🔜 Coming soon!
 
+> **⏳ Note:** Nvidia RTX and Intel VSR Scaling support might take some time as this requires quite a big rewrite to support mpv wid embedding with d3d as current libmpv implementation only supports opengl
 
 
 ## 📚 **Guide / Docs**

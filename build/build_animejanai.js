@@ -346,6 +346,7 @@ function find7zExecutable() {
         console.log('Cleanup complete.');
 
         console.log('=== Build AnimeJaNai Script Completed Successfully ===');
+        process.exit(1);
     } catch (error) {
         console.error('Error during build:', error.message);
         process.exit(1);
