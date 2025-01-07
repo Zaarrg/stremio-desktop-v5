@@ -66,7 +66,7 @@ Enhance your Stremio experience by customizing the MPV player settings. Below ar
 
 > **⏳ Note:** Any other configuration files can be just dropped into ``%localAppData%\Programs\LNV\Stremio-5\portable_config`` as this is the mpv ``config-dir`` like ``input.conf``
 
-  - **🎹 Usage example in `input.conf` using Anime4k:**
+  - **🎹 Usage example in `input.conf` using [Anime4k](https://github.com/bloc97/Anime4K):**
     ```shell
     # Optimized shaders for higher-end GPU
     CTRL+1 no-osd change-list glsl-shaders set "~~/shaders/Anime4K_Clamp_Highlights.glsl;~~/shaders/Anime4K_Restore_CNN_VL.glsl;~~/shaders/Anime4K_Upscale_CNN_x2_VL.glsl;~~/shaders/Anime4K_AutoDownscalePre_x2.glsl;~~/shaders/Anime4K_AutoDownscalePre_x4.glsl;~~/shaders/Anime4K_Upscale_CNN_x2_M.glsl"; show-text "Anime4K: Mode A (HQ)"
@@ -82,12 +82,12 @@ Enhance your Stremio experience by customizing the MPV player settings. Below ar
 
 ## 🔍 **Mpv Upscalers**
 
-- 🎥 **Anime4k**
+- 🎥 **[Anime4k](https://github.com/bloc97/Anime4K)**
     - ✅ Included by default.
     - 🔢 Use `CTRL+1` - `CTRL+6` to enable shaders.
     - ❌ Use `CTRL+0` to disable.
 
-- 🎨 **AnimeJaNai**
+- 🎨 **[AnimeJaNai](https://github.com/the-database/mpv-upscale-2x_animejanai)**
     - ❌ Not included by default.
     - 📥 Download from the **Stremio-Desktop-v5** [release tab](https://github.com/Zaarrg/stremio-desktop-v5) the `stremio-animejanai-3.x.x.7z` for Stremio and drop the content of the 7z into `%localAppData%\Programs\LNV\Stremio-5\` and `replace all`
         - 🛠️ **Changes made:**
