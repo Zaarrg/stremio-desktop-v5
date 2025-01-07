@@ -94,6 +94,13 @@ Enhance your Stremio experience by customizing the MPV player settings. Below ar
             - Removed `mpvnet.exe` as Stremio is used as the player.
             - Adjusted `mpv.conf` to work with Stremio.
             - Adjusted `input.conf` to work with Stremio.
+- ⌨️ **Possible Keybindings**
+    - 🎬 `CTRL+J` Show Upscaler Status
+    - 🛠️ `CTRL+E` Open AnimeJaNai ConfEditor
+    - ❌ `CTRL+0` Disable Upscaling
+    - 🔢 `SHIFT+1` - `SHIFT+3` Select Quality, Balanced or Performance Profiles
+    - ⚙️ `CTRL+1` - `CTRL+9` Switch between Custom Profiles
+    - 🔗 For more, check [AnimeJaNai](https://github.com/the-database/mpv-upscale-2x_animejanai)
 
 > **⏳ Note:** When using AnimeJaNai on first playback Stremio will be unresponsive and a console will open to build the model via e.g. TensorRT. You will need to wait until the console closes for playback to start. This happens only once per model.
 
