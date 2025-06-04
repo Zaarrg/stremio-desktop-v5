@@ -198,17 +198,104 @@
         - 👀 ``PauseOnLostFocus`` Pause playback on window loses focus
         - 🔍 ``AllowZoom`` Allow zoom via `pinch action` or ``CTRL+Scroll``
 
-- ❌ **App Errors**
-    - If the app does not start and instantly closes, check the error log in ``portable_config\errors-{date}.txt``
-  - ⚠️ **Common Issues**
-      - ❗ [WebView2](https://developer.microsoft.com/de-de/microsoft-edge/webview2/#download) not installed – Installed by default using the installer but may have failed
-      - 🌎 Unreachable Web UI. Make sure you can reach the web ui hosted [here](https://zaarrg.github.io/stremio-web-shell-fixes/).
-      - ⚙️ Invalid MPV configuration like ``mpv.conf``, ``input.conf`` or ``scripts``
-      - 📄 Invalid ``stremio-settings.ini``
-      - 🧩 Invalid ``extensions``
+- ❌ **App Errors & Troubleshooting**
+    - 📋 **Quick Fixes for Common Issues**
+        1. **Try F5 first** - Refreshes the page and fixes many display issues
+        2. **Try Ctrl+F5** - Clears cache and fixes persistent problems (including volume slider)
+        3. **Restart the app** - Close completely via Task Manager and restart
+        4. **Reboot PC** - Fixes sleep-related streaming server issues
 
-> **⏳ Note:** A default stremio-settings.ini can be found [here](https://github.com/Zaarrg/stremio-desktop-v5/blob/webview-windows/utils/stremio/stremio-settings.ini)
+    - 🚀 **App Won't Start / Instantly Closes**
+        - **Check error logs:** ``portable_config\errors-{date}.txt`` for specific error messages
+        - **WebView2 Issues:**
+            - ❗ **[WebView2](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) not installed** – Most common startup issue
+                - Download from [Microsoft WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)
+                - Install the "Evergreen Standalone Installer"
+                - Restart computer after installation
+            - 🔄 **WebView2 corrupted:** Uninstall from "Add or Remove Programs" and reinstall
+            - 🚫 **Antivirus blocking:** Add Stremio folder to antivirus exclusions
+        - **Configuration Issues:**
+            - ⚙️ **Invalid ``stremio-settings.ini``:** Delete file and restart (default will be created)
+            - 📺 **Invalid MPV config:** Try deleting ``mpv.conf``, ``input.conf`` temporarily
+            - 🧩 **Extension conflicts:** Move extensions out of ``portable_config\extensions`` to test
 
+    - ⚫ **Black Screen Issues**
+        - **First try:** Press **F5** to refresh the page
+        - **If F5 doesn't work:** Press **Ctrl+F5** to clear cache (also fixes volume slider)
+        - **For persistent issues, add to ``mpv.conf``:**
+          ```shell
+          vo=gpu
+          # Try one of these GPU settings:
+          gpu-api=vulkan
+          # OR
+          gpu-api=opengl
+          ```
+        - **WebView2 GPU conflicts:** Run from Command Prompt:
+          ```shell
+          cd %localAppData%\Programs\LNV\Stremio-5\
+          set WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--disable-gpu
+          stremio.exe
+          ```
+        - **Alternative WebView2 fixes:**
+          ```shell
+          set WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--use-angle=opengl
+          # OR try these:
+          --use-angle=swiftshader
+          --use-angle=vulkan  
+          --use-angle=d3d11
+          --disable_direct_composition_video_overlays=1
+          ```
+
+    - 🎵 **Volume Control Not Working**
+        - **Quick fix:** Press **Ctrl+F5** to refresh and clear cache
+        - **Alternative:** Close video, restart app, try again
+        - **Check:** Windows audio mixer - ensure Stremio isn't muted
+
+    - 📱 **"Device suddenly not support stream" Error**
+        - **Immediate fix:** Restart the application completely
+        - **Root cause:** Occurs after computer sleep/hibernate
+        - **Prevention:** Restart Stremio after waking computer from sleep
+        - **Check streaming server status:** Go to Settings > Streaming tab
+        - **Server should show:** Status "Online"
+        - **If offline:** Use Task Manager to close all Stremio processes, then restart
+
+    - 🌐 **Web UI Connection Issues**
+        - **Cannot reach Web UI:** Verify you can access the web interface hosted [here](https://zaarrg.github.io/stremio-web-shell-fixes/)
+        - **Streaming server offline:** Check Settings > Streaming - should show "Online"
+        - **Port conflicts:** Another Stremio instance might be running - check Task Manager
+        - **After sleep mode:** Always restart Stremio after computer wake-up
+
+    - 🐌 **Performance Issues**
+        - **High CPU/Memory:**
+            - Close other applications
+            - Reduce ``ThumbFastHeight`` setting or set to ``0``
+            - Update graphics drivers
+        - **Stuttering/Buffering:**
+            - Try different GPU settings in ``mpv.conf``
+            - Check available storage space
+            - Disable browser hardware acceleration if conflicts occur
+  
+    - 🔧 **Advanced Troubleshooting**
+        - **Complete reinstall:** 
+            1. Uninstall app completely with user data
+            2. Verify ``%localAppData%\Programs\LNV\Stremio-5\`` is empty
+            3. Manually delete ``%temp%\stremio_updater`` if needed
+            4. Reinstall fresh copy
+        - **Cache issues:** Try Ctrl+F5 refresh to clear WebView2 cache
+        - **Multiple instances:** Use Task Manager to ensure no other Stremio processes
+
+    - 📁 **Log File Locations**
+        - **Main errors:** ``portable_config\errors-{date}.txt``
+        - **MPV logs:** ``portable_config\mpv-log.txt`` (if logging enabled)
+        - **Extension logs:** Check individual extension folders
+        - **Windows logs:** Event Viewer > Application logs (search "Stremio")
+
+    - 🆘 **Reporting Issues**
+        - Include error log from ``portable_config\errors-{date}.txt``
+        - Specify Windows version and graphics card
+        - Mention if issue occurs after sleep/wake cycle
+        - Note which F5/Ctrl+F5 method worked (if any)
+        - List recently changed settings or installed extensions
 ## 🎛️ **Mpv Configuration**
 
 Enhance your Stremio experience by customizing the MPV player settings. Below are the key configuration files and guidelines to help you get started:
