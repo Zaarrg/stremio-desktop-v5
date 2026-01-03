@@ -2,9 +2,9 @@ name: Windows Build
 
 on:
   push:
-    branches: [ "master", "main", "development" ]
+    branches: [ "master", "main", "webview-windows" ]
   pull_request:
-    branches: [ "master", "main", "development" ]
+    branches: [ "master", "main", "webview-windows" ]
 
 jobs:
   build:
