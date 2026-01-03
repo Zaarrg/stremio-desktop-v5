@@ -1,0 +1,130 @@
+diff --git a/include/discord_rpc.h b/include/discord_rpc.h
+index 9470434..b057358 100644
+--- a/include/discord_rpc.h
++++ b/include/discord_rpc.h
+@@ -1,5 +1,6 @@
+ #pragma once
+ #include <stdint.h>
++#include <string.h>
+ 
+ // clang-format off
+ 
+@@ -23,6 +24,19 @@
+ extern "C" {
+ #endif
+ 
++// Activity Type
++#define DISCORD_ACTIVITY_TYPE_GAME 0
++#define DISCORD_ACTIVITY_TYPE_STREAMING 1
++#define DISCORD_ACTIVITY_TYPE_LISTENING 2
++#define DISCORD_ACTIVITY_TYPE_WATCHING 3
++#define DISCORD_ACTIVITY_TYPE_CUSTOM 4
++#define DISCORD_ACTIVITY_TYPE_COMPETING 5
++
++typedef struct DiscordButton {
++    const char* label;
++    const char* url;
++} DiscordButton;
++
+ typedef struct DiscordRichPresence {
+     const char* state;   /* max 128 bytes */
+     const char* details; /* max 128 bytes */
+@@ -40,6 +54,24 @@ typedef struct DiscordRichPresence {
+     const char* joinSecret;     /* max 128 bytes */
+     const char* spectateSecret; /* max 128 bytes */
+     int8_t instance;
++    
++    // New Fields
++    const char* name;
++    int type;
++    const char* url;
++    int64_t createdAt;
++    const char* applicationId;
++    int statusDisplayType;
++    const char* detailsUrl;
++    const char* stateUrl;
++    const char* emojiName;
++    const char* emojiId;
++    int8_t emojiAnimated;
++    int flags;
++    const char* button1Label;
++    const char* button1Url;
++    const char* button2Label;
++    const char* button2Url;
+ } DiscordRichPresence;
+ 
+ typedef struct DiscordUser {
+diff --git a/src/serialization.cpp b/src/serialization.cpp
+index 70efa63..039f155 100644
+--- a/src/serialization.cpp
++++ b/src/serialization.cpp
+@@ -107,6 +107,25 @@ size_t JsonWriteRichPresenceObj(char* dest,
+ 
+                 WriteOptionalString(writer, "state", presence->state);
+                 WriteOptionalString(writer, "details", presence->details);
++                WriteOptionalString(writer, "url", presence->url);
++                WriteOptionalString(writer, "application_id", presence->applicationId);
++                WriteOptionalString(writer, "details_url", presence->detailsUrl);
++                WriteOptionalString(writer, "state_url", presence->stateUrl);
++
++                if (presence->type) {
++                     WriteKey(writer, "type");
++                     writer.Int(presence->type);
++                }
++
++                if (presence->createdAt) {
++                     WriteKey(writer, "created_at");
++                     writer.Int64(presence->createdAt);
++                }
++                
++                if (presence->statusDisplayType) {
++                     WriteKey(writer, "status_display_type");
++                     writer.Int(presence->statusDisplayType);
++                }
+ 
+                 if (presence->startTimestamp || presence->endTimestamp) {
+                     WriteObject timestamps(writer, "timestamps");
+@@ -157,6 +176,43 @@ size_t JsonWriteRichPresenceObj(char* dest,
+                     WriteOptionalString(writer, "join", presence->joinSecret);
+                     WriteOptionalString(writer, "spectate", presence->spectateSecret);
+                 }
++                
++                if ((presence->emojiName && presence->emojiName[0]) ||
++                    (presence->emojiId && presence->emojiId[0])) {
++                     WriteObject emoji(writer, "emoji");
++                     WriteOptionalString(writer, "name", presence->emojiName);
++                     WriteOptionalString(writer, "id", presence->emojiId);
++                     if (presence->emojiAnimated) {
++                         WriteKey(writer, "animated");
++                         writer.Bool(presence->emojiAnimated);
++                     }
++                }
++
++                if (presence->flags) {
++                    WriteKey(writer, "flags");
++                    writer.Int(presence->flags);
++                }
++
++                if (presence->button1Label && presence->button1Label[0] &&
++                    presence->button1Url && presence->button1Url[0]) {
++                    WriteKey(writer, "buttons");
++                    writer.StartArray();
++                    
++                    writer.StartObject();
++                    WriteOptionalString(writer, "label", presence->button1Label);
++                    WriteOptionalString(writer, "url", presence->button1Url);
++                    writer.EndObject();
++
++                    if (presence->button2Label && presence->button2Label[0] &&
++                        presence->button2Url && presence->button2Url[0]) {
++                        writer.StartObject();
++                        WriteOptionalString(writer, "label", presence->button2Label);
++                        WriteOptionalString(writer, "url", presence->button2Url);
++                        writer.EndObject();
++                    }
++                    
++                    writer.EndArray();
++                }
+ 
+                 writer.Key("instance");
+                 writer.Bool(presence->instance != 0);
