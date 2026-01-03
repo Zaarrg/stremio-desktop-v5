@@ -108,6 +108,21 @@ if(EXISTS "${MPV_RAR}" AND NOT EXISTS "${MPV_DLL}")
     endif()
 endif()
 
+# Automate discord-rpc patching
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/deps/discord-rpc/include/discord_rpc.h" RPC_HEADER_CONTENT)
+if(NOT RPC_HEADER_CONTENT MATCHES "statusDisplayType")
+    message(STATUS "Patching discord-rpc...")
+    find_package(Git REQUIRED)
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} apply --directory=deps/discord-rpc "${CMAKE_CURRENT_SOURCE_DIR}/deps/discord-rpc.patch"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        RESULT_VARIABLE PATCH_RESULT
+    )
+    if(NOT PATCH_RESULT EQUAL 0)
+        message(FATAL_ERROR "Failed to apply discord-rpc.patch. Please apply manually or check git state.")
+    endif()
+endif()
+
 option(BUILD_EXAMPLES "Build example apps" OFF)
 add_subdirectory(deps/discord-rpc)
 set(DISCORD_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/discord-rpc/include")
