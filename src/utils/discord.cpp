@@ -49,6 +49,7 @@ static void SetDiscordWatchingPresence(
     DiscordRichPresence discordPresence{};
     memset(&discordPresence, 0, sizeof(discordPresence));
 
+    discordPresence.statusDisplayType = DISCORD_STATUS_DISPLAY_TYPE_DETAILS;
     discordPresence.type = DISCORD_ACTIVITY_TYPE_WATCHING;
 
     // Common fields (required)
@@ -108,7 +109,7 @@ static void SetDiscordMetaDetailPresence(const std::vector<std::string>& args) {
 
     DiscordRichPresence discordPresence{};
     memset(&discordPresence, 0, sizeof(discordPresence));
-
+    discordPresence.statusDisplayType = DISCORD_STATUS_DISPLAY_TYPE_DETAILS;
     discordPresence.type = DISCORD_ACTIVITY_TYPE_WATCHING;
     discordPresence.details = args[2].c_str(); // Title (show/movie)
     discordPresence.largeImageKey = args[3].c_str();
@@ -127,6 +128,7 @@ static void SetDiscordDiscoverPresence(const char *const details, const char *co
 
     DiscordRichPresence discordPresence{};
     memset(&discordPresence, 0, sizeof(discordPresence));
+    discordPresence.statusDisplayType = DISCORD_STATUS_DISPLAY_TYPE_STATE;
     discordPresence.type = DISCORD_ACTIVITY_TYPE_WATCHING;
     discordPresence.state = state;
     discordPresence.details = details;
