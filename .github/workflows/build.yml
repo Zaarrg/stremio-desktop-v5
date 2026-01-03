@@ -27,8 +27,7 @@ jobs:
 
     - name: Install Dependencies via Vcpkg
       run: |
-        $packages = "openssl:x64-windows-static", "nlohmann-json:x64-windows-static", "webview2:x64-windows-static", "curl:x64-windows-static"
-        vcpkg install $packages
+        vcpkg install --triplet x64-windows-static
 
     - name: Configure CMake
       run: |
