@@ -1,0 +1,64 @@
+name: Windows Build
+
+on:
+  push:
+    branches: [ "master", "main", "development" ]
+  pull_request:
+    branches: [ "master", "main", "development" ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    env:
+      VCPKG_ROOT: 'C:\vcpkg'
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Setup Vcpkg
+      run: |
+        cd $env:VCPKG_ROOT
+        git pull
+        .\bootstrap-vcpkg.bat
+
+    - name: Install Dependencies via Vcpkg
+      run: |
+        $packages = "openssl:x64-windows-static", "nlohmann-json:x64-windows-static", "webview2:x64-windows-static", "curl:x64-windows-static"
+        vcpkg install $packages
+
+    - name: Apply Discord RPC Patch
+      shell: bash
+      run: |
+        # Apply the patch to the submodule
+        # The patch file is expected to be in deps/discord-rpc.patch
+        if [ -f "deps/discord-rpc.patch" ]; then
+          echo "Applying discord-rpc patch..."
+          cd deps/discord-rpc
+          git apply ../discord-rpc.patch
+        else
+          echo "Patch file deps/discord-rpc.patch not found!"
+          exit 1
+        fi
+
+    - name: Extract libmpv
+      run: |
+        $rarPath = "deps/libmpv/x86_64/libmpv-2.dll.rar"
+        $outPath = "deps/libmpv/x86_64/libmpv-2.dll"
+        if (Test-Path $rarPath) {
+           Write-Host "Extracting $rarPath..."
+           & "7z" x $rarPath -o"deps/libmpv/x86_64/" -y
+        } else {
+           Write-Warning "$rarPath not found."
+        }
+
+    - name: Configure CMake
+      run: |
+        cmake -S . -B out -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows-static
+
+    - name: Build
+      run: |
+        cmake --build out --config Release --parallel

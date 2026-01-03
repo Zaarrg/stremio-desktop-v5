@@ -1,0 +1,10 @@
+{
+  "name": "stremio-community-v5",
+  "version-string": "5.0.21",
+  "dependencies": [
+    "curl",
+    "nlohmann-json",
+    "openssl",
+    "webview2"
+  ]
+}

@@ -1,5 +1,78 @@
 cmake_minimum_required(VERSION 3.16)
 
+# -----------------------------------------------------------------------------
+# Auto-detect Vcpkg
+# -----------------------------------------------------------------------------
+if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+    if(DEFINED ENV{VCPKG_ROOT})
+        set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
+    else()
+        # Try common locations
+        set(_VCPKG_PATHS
+            "C:/vcpkg"
+            "C:/Users/$ENV{USERNAME}/vcpkg"
+            "C:/Users/$ENV{USERNAME}/scoop/apps/vcpkg/current"
+            "${CMAKE_CURRENT_SOURCE_DIR}/deps/vcpkg"
+        )
+        foreach(_PATH ${_VCPKG_PATHS})
+            if(EXISTS "${_PATH}/scripts/buildsystems/vcpkg.cmake")
+                message(STATUS "Found Vcpkg at: ${_PATH}")
+                set(CMAKE_TOOLCHAIN_FILE "${_PATH}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
+                break()
+            endif()
+        endforeach()
+        
+        if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+            message(WARNING "Vcpkg not found in standard locations. Please set VCPKG_ROOT environment variable or pass -DCMAKE_TOOLCHAIN_FILE.")
+        endif()
+    endif()
+endif()
+
+if(DEFINED CMAKE_TOOLCHAIN_FILE)
+    message(STATUS "Using toolchain: ${CMAKE_TOOLCHAIN_FILE}")
+    set(VCPKG_TARGET_TRIPLET "x64-windows-static" CACHE STRING "")
+    set(VCPKG_MANIFEST_MODE ON CACHE BOOL "")
+    set(VCPKG_MANIFEST_INSTALL ON CACHE BOOL "")
+
+    # Resolve VCPKG_ROOT from toolchain file path
+    get_filename_component(_VCPKG_SCRIPTS_DIR "${CMAKE_TOOLCHAIN_FILE}" DIRECTORY) # .../scripts/buildsystems
+    get_filename_component(_VCPKG_SCRIPTS_ROOT "${_VCPKG_SCRIPTS_DIR}" DIRECTORY)  # .../scripts
+    get_filename_component(VCPKG_ROOT_DETECTED "${_VCPKG_SCRIPTS_ROOT}" DIRECTORY)  # .../vcpkg (root)
+
+    # Preseed NASM if not present (fix for unstable nasm.us)
+    # Extract the exact version vcpkg wants from its own scripts
+    set(NASM_ACQUIRE_SCRIPT "${VCPKG_ROOT_DETECTED}/scripts/cmake/vcpkg_find_acquire_program(NASM).cmake")
+    
+    if(EXISTS "${NASM_ACQUIRE_SCRIPT}")
+        file(READ "${NASM_ACQUIRE_SCRIPT}" SCRIPT_CONTENTS)
+        string(REGEX MATCH "set\\(program_version ([0-9.]+)\\)" _ "${SCRIPT_CONTENTS}")
+        set(NASM_VERSION ${CMAKE_MATCH_1})
+        
+        if(NASM_VERSION)
+            set(NASM_ZIP "nasm-${NASM_VERSION}-win64.zip")
+            set(VCPKG_DOWNLOADS "${VCPKG_ROOT_DETECTED}/downloads")
+
+            # 1. Ensure the downloads directory exists
+            if(NOT EXISTS "${VCPKG_DOWNLOADS}")
+                file(MAKE_DIRECTORY "${VCPKG_DOWNLOADS}")
+            endif()
+
+            # 2. Pre-seed the ZIP
+            if(NOT EXISTS "${VCPKG_DOWNLOADS}/${NASM_ZIP}")
+                message(STATUS "vcpkg needs NASM ${NASM_VERSION}. Pre-seeding from mirror...")
+                file(DOWNLOAD 
+                    "https://gstreamer.freedesktop.org/data/src/mirror/${NASM_ZIP}"
+                    "${VCPKG_DOWNLOADS}/${NASM_ZIP}"
+                    SHOW_PROGRESS
+                    TLS_VERIFY ON
+                )
+            endif()
+        endif()
+    endif()
+endif()
+
+message(STATUS "DEBUG: CMake running...")
+
 project(stremio VERSION "5.0.21")
 
 set(CMAKE_CXX_STANDARD 20)
@@ -7,24 +80,37 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 option(DEBUG_LOG "Allow debug logs" ON)
 
-# Locate MPV
+# Locate MPV and Discord
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    # 64-bit architecture
-    set(MPV_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/libmpv/x86_64/include")
-    set(MPV_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/deps/libmpv/x86_64/mpv.lib")
-    set(MPV_DLL "${CMAKE_CURRENT_SOURCE_DIR}/deps/libmpv/x86_64/libmpv-2.dll")
-
-    set(DISCORD_LIB "${CMAKE_CURRENT_SOURCE_DIR}/deps/discord-rpc/win64-static/lib/discord-rpc.lib")
-    set(DISCORD_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/discord-rpc/win64-static/include")
+    set(MPV_ARCH "x86_64")
 else()
-    # 32-bit architecture
-    set(MPV_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/libmpv/i686/include")
-    set(MPV_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/deps/libmpv/i686/mpv.lib")
-    set(MPV_DLL "${CMAKE_CURRENT_SOURCE_DIR}/deps/libmpv/i686/libmpv-2.dll")
-
-    set(DISCORD_LIB "${CMAKE_CURRENT_SOURCE_DIR}/deps/discord-rpc/win32-static/lib/discord-rpc.lib")
-    set(DISCORD_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/discord-rpc/win32-static/include")
+    set(MPV_ARCH "i686")
 endif()
+
+set(MPV_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/libmpv/${MPV_ARCH}")
+set(MPV_INCLUDE_DIR "${MPV_DIR}/include")
+set(MPV_LIBRARY "${MPV_DIR}/mpv.lib")
+set(MPV_DLL "${MPV_DIR}/libmpv-2.dll")
+set(MPV_RAR "${MPV_DIR}/libmpv-2.dll.rar")
+
+# Auto-extract libmpv if needed
+if(EXISTS "${MPV_RAR}" AND NOT EXISTS "${MPV_DLL}")
+    message(STATUS "Extracting libmpv DLL from ${MPV_RAR}...")
+    execute_process(
+        COMMAND ${CMAKE_COMMAND} -E tar x "${MPV_RAR}"
+        WORKING_DIRECTORY "${MPV_DIR}"
+        RESULT_VARIABLE TAR_RESULT
+    )
+    if(NOT TAR_RESULT EQUAL 0)
+        message(WARNING "Failed to extract libmpv dll. Please unzip manually.")
+    else()
+        message(STATUS "Successfully extracted libmpv.")
+    endif()
+endif()
+
+option(BUILD_EXAMPLES "Build example apps" OFF)
+add_subdirectory(deps/discord-rpc)
+set(DISCORD_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/discord-rpc/include")
 
 include_directories(${DISCORD_INCLUDE_DIR})
 include_directories(${MPV_INCLUDE_DIR})
@@ -82,7 +168,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         OpenSSL::Crypto
         CURL::libcurl
         ${MPV_LIBRARY}
-        ${DISCORD_LIB}
+        discord-rpc
 )
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE DEBUG_LOG)
