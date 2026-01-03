@@ -1,0 +1,37 @@
+# Build directories
+build/
+out/
+bin/
+lib/
+*.exe
+*.dll
+*.lib
+*.pdb
+*.obj
+*.exp
+*.ilk
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CMakeUserPresets.json
+compile_commands.json
+.cmake/
+
+# Visual Studio
+.vs/
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+
+# Mac / Linux
+.DS_Store
+*.dylib
+*.so
+.vscode/
+
+# Project specific
+deps/libmpv/x86_64/libmpv-2.dll
+deps/libmpv/i686/libmpv-2.dll
