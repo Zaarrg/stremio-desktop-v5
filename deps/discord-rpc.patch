@@ -1,5 +1,5 @@
 diff --git a/include/discord_rpc.h b/include/discord_rpc.h
-index 9470434..b057358 100644
+index 9470434..619b13e 100644
 --- a/include/discord_rpc.h
 +++ b/include/discord_rpc.h
 @@ -1,5 +1,6 @@
@@ -9,7 +9,7 @@ index 9470434..b057358 100644
  
  // clang-format off
  
-@@ -23,6 +24,19 @@
+@@ -23,6 +24,24 @@
  extern "C" {
  #endif
  
@@ -21,6 +21,11 @@ index 9470434..b057358 100644
 +#define DISCORD_ACTIVITY_TYPE_CUSTOM 4
 +#define DISCORD_ACTIVITY_TYPE_COMPETING 5
 +
++// Status Display Types
++#define DISCORD_STATUS_DISPLAY_TYPE_NAME 0
++#define DISCORD_STATUS_DISPLAY_TYPE_STATE 1
++#define DISCORD_STATUS_DISPLAY_TYPE_DETAILS 2
++
 +typedef struct DiscordButton {
 +    const char* label;
 +    const char* url;
@@ -29,7 +34,7 @@ index 9470434..b057358 100644
  typedef struct DiscordRichPresence {
      const char* state;   /* max 128 bytes */
      const char* details; /* max 128 bytes */
-@@ -40,6 +54,24 @@ typedef struct DiscordRichPresence {
+@@ -40,6 +59,24 @@ typedef struct DiscordRichPresence {
      const char* joinSecret;     /* max 128 bytes */
      const char* spectateSecret; /* max 128 bytes */
      int8_t instance;
