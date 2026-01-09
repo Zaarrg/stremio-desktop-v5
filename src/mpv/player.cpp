@@ -5,9 +5,43 @@
 #include "../utils/crashlog.h"
 #include "../utils/helpers.h"
 #include "../ui/mainwindow.h"
+#include <cctype>
+#include "../core/globals.h"
+#include "../utils/crashlog.h"
+#include "../utils/helpers.h"
+#include "../ui/mainwindow.h"
 
 // Helper for mpv node => JSON
 static nlohmann::json mpvNodeToJson(const mpv_node* node);
+
+// Cache for chapters
+static nlohmann::json g_cachedChapterList = nullptr;
+static nlohmann::json g_cachedChapterIdx = -1;
+static double g_cachedDuration = 0.0;
+
+void ResendChapterData() {
+    if (g_cachedChapterList.is_array()) {
+        nlohmann::json j;
+        j["type"] = "mpv-prop-change";
+        j["name"] = "chapter-list";
+        j["data"] = g_cachedChapterList;
+        SendToJS("mpv-prop-change", j);
+    }
+    if (g_cachedChapterIdx.is_number()) {
+        nlohmann::json j;
+        j["type"] = "mpv-prop-change";
+        j["name"] = "chapter";
+        j["data"] = g_cachedChapterIdx;
+        SendToJS("mpv-prop-change", j);
+    }
+    if (g_cachedDuration > 0) {
+        nlohmann::json j;
+        j["type"] = "mpv-prop-change";
+        j["name"] = "duration";
+        j["data"] = g_cachedDuration;
+        SendToJS("mpv-prop-change", j);
+    }
+}
 
 static nlohmann::json mpvNodeArrayToJson(const mpv_node_list* list)
 {
@@ -133,6 +167,15 @@ void HandleMpvEvents()
             }
             if (j["name"] == "volume" && g_initialSet) {
                 g_currentVolume = j["data"];
+            }
+            if (j["name"] == "chapter-list") {
+                g_cachedChapterList = j["data"];
+            }
+            if (j["name"] == "chapter") {
+                g_cachedChapterIdx = j["data"];
+            }
+            if (j["name"] == "duration") {
+                g_cachedDuration = j["data"].is_number() ? j["data"].get<double>() : 0.0;
             }
             SendToJS("mpv-prop-change", j);
             break;
@@ -270,6 +313,11 @@ bool InitMPV(HWND hwnd)
     mpv_set_property_string(g_mpv,"audio-fallback-to-null","yes");
     mpv_set_property_string(g_mpv,"audio-client-name",APP_NAME);
     mpv_set_property_string(g_mpv,"title",APP_NAME);
+
+    // Observe chapters
+    mpv_observe_property(g_mpv, 0, "chapter", MPV_FORMAT_INT64);
+    mpv_observe_property(g_mpv, 0, "chapter-list", MPV_FORMAT_NODE);
+    mpv_observe_property(g_mpv, 0, "duration", MPV_FORMAT_DOUBLE);
 
     return true;
 }

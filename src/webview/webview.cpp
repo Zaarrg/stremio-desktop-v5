@@ -160,6 +160,251 @@ img.addEventListener('error', function() {
 })();
 )JS";
 
+const wchar_t* INJECTED_CHAPTERS_SCRIPT_PART1 = LR"JS(
+(function() {
+    // Idempotency check 
+    if (window.stremioChaptersInjected) {
+         console.log("[ChapterJS] Already injected, requesting chapters again.");
+         try {
+            window.chrome.webview.postMessage(JSON.stringify({
+                type: 6,
+                object: "transport",
+                method: "handleInboundJSON",
+                id: 1111,
+                args: ["request-chapters", []]
+            }));
+         } catch(e){}
+         return;
+    }
+    window.stremioChaptersInjected = true;
+
+    let chapters = [];
+    let currentChapterIdx = -1;
+    let duration = 0;
+    
+    // Elements
+    let chapterEl = null;      // The text display
+    let markersContainer = null; // Container for lines
+
+    function log(msg) {
+        console.log("[ChapterJS]: " + msg);
+        try {
+            window.chrome.webview.postMessage(JSON.stringify({ type: "log", msg: "[ChapterJS] " + msg }));
+        } catch(e){}
+    }
+
+    log("Script initializing...");
+
+    function getPlayerBar() {
+        const selectors = [
+            '[class*="player-controls"]',
+            '[class*="playerControls"]',
+            '.player-controls',
+            '#player-controls',
+            '[data-component="player-controls"]'
+        ];
+        for (const s of selectors) {
+            const el = document.querySelector(s);
+            if (el) return el;
+        }
+        return null;
+    }
+
+    // Try to find the progress/seek bar container
+    function getProgressBar() {
+        const seekBars = document.querySelectorAll('[class*="seek-bar"]');
+        for (const sb of seekBars) {
+             if (sb.offsetParent !== null) return sb;
+        }
+
+        // 2. Generic Fallbacks (but filtered)
+        const selectors = [
+             '[class*="progress-bar"]', 
+             '.progress-container',
+             '.player-progress',
+             'input[type="range"]'
+        ];
+        
+        for (const s of selectors) {
+            const candidates = document.querySelectorAll(s);
+            for (const el of candidates) {
+                // CRITICAL: Exclude dashboard items (posters/cards)
+                if (el.closest('[class*="poster-container"]') || 
+                    el.closest('[class*="meta-item"]') || 
+                    el.closest('.poster-shape-poster')) {
+                    continue;
+                }
+                // Must be somewhat visible/active
+                if (el.offsetParent !== null) return el;
+            }
+        }
+        return null;
+    }
+
+    function ensureUI() {
+        // 1. Text Display
+        if (!chapterEl || !document.body.contains(chapterEl)) {
+            // Check if existing element is in DOM (re-attach scenario)
+            chapterEl = document.getElementById('stremio-chapter-display');
+            if(!chapterEl) {
+                chapterEl = document.createElement('div');
+                chapterEl.id = 'stremio-chapter-display';
+                chapterEl.style.color = 'rgba(255, 255, 255, 0.9)';
+                chapterEl.style.fontSize = '1.2em';
+                chapterEl.style.fontWeight = 'bold';
+                chapterEl.style.margin = '0 15px';
+                chapterEl.style.zIndex = '2147483647';
+                chapterEl.style.textShadow = '0 1px 4px rgba(0,0,0,1)';
+                chapterEl.style.pointerEvents = 'none';
+                chapterEl.style.fontFamily = 'Segoe UI, sans-serif';
+            }
+            
+            const bar = getPlayerBar();
+            if (bar) {
+                 chapterEl.style.alignSelf = 'center';
+                 // Try to insert cleanly
+                 if(bar.firstChild) bar.insertBefore(chapterEl, bar.firstChild);
+                 else bar.appendChild(chapterEl);
+            } else {
+                 chapterEl.style.position = 'fixed';
+                 chapterEl.style.bottom = '100px';
+                 chapterEl.style.left = '50%';
+                 chapterEl.style.transform = 'translateX(-50%)';
+                 chapterEl.style.backgroundColor = 'rgba(0,0,0,0.5)';
+                 chapterEl.style.padding = '5px 10px';
+                 chapterEl.style.borderRadius = '5px';
+                 document.body.appendChild(chapterEl);
+            }
+        }
+)JS";
+
+const wchar_t* INJECTED_CHAPTERS_SCRIPT_PART2 = LR"JS(
+        // 2. Markers
+        if (!markersContainer || !document.body.contains(markersContainer)) {
+             markersContainer = document.getElementById('stremio-chapter-markers');
+             if(!markersContainer) {
+                 markersContainer = document.createElement('div');
+                 markersContainer.id = 'stremio-chapter-markers';
+                 markersContainer.style.position = 'absolute';
+                 markersContainer.style.top = '0';
+                 markersContainer.style.left = '0';
+                 markersContainer.style.width = '100%';
+                 markersContainer.style.height = '100%';
+                 markersContainer.style.pointerEvents = 'none';
+                 markersContainer.style.zIndex = '10'; // Above background, below knob
+             }
+             
+             const progress = getProgressBar();
+             if (progress) {
+                 // Re-parent if necessary (e.g. if we moved from dashboard to player, or re-rendered)
+                 if (markersContainer.parentElement !== progress) {
+                     // log("Attaching markers to: " + progress.className);
+                     const computedStyle = window.getComputedStyle(progress);
+                     if(computedStyle.position === 'static') {
+                         progress.style.position = 'relative';
+                     }
+                     progress.appendChild(markersContainer);
+                 }
+             } else {
+                 // log("No progress bar found for markers");
+             }
+        }
+    }
+
+    function renderMarkers() {
+        if (!markersContainer) return;
+        markersContainer.innerHTML = ''; // Clear old keys
+        
+        if (!chapters || chapters.length === 0 || duration <= 0) return;
+
+        chapters.forEach((ch, idx) => {
+            if (!ch.time) return;
+            const pct = (ch.time / duration) * 100;
+            if (pct < 0 || pct > 100) return;
+
+            const marker = document.createElement('div');
+            marker.style.position = 'absolute';
+            marker.style.left = pct + '%';
+            marker.style.top = '25%';      // Start slightly down
+            marker.style.height = '50%';   // Only take up middle 50%
+            marker.style.width = '2px';
+            marker.style.backgroundColor = 'rgba(255, 255, 255, 0.5)'; // Subtle white
+            marker.style.zIndex = '9';     // Below knob (usually 10 or higher)
+            marker.style.pointerEvents = 'none';
+            marker.title = ch.title || ('Chapter ' + (idx + 1));
+            markersContainer.appendChild(marker);
+        });
+    }
+
+    function updateUI() {
+        ensureUI();
+        
+        // Update Text
+        if (currentChapterIdx >= 0 && chapters && chapters[currentChapterIdx]) {
+            const ch = chapters[currentChapterIdx];
+            const title = ch.title || ('Chapter ' + (currentChapterIdx + 1));
+            if(chapterEl) chapterEl.innerText = title;
+        } else {
+            if(chapterEl) chapterEl.innerText = '';
+        }
+
+        // Check if markers correct
+        // Re-render if container empty but data exists
+        if (markersContainer && markersContainer.childElementCount === 0 && chapters.length > 0) {
+            renderMarkers();
+        }
+    }
+
+    setInterval(() => {
+        updateUI();
+    }, 2000);
+
+    window.chrome.webview.addEventListener('message', function(event) {
+        try {
+            const data = JSON.parse(event.data);
+            if (data && data.args && Array.isArray(data.args)) {
+                const eventName = data.args[0];
+                const eventData = data.args[1];
+
+                if (eventName === 'mpv-prop-change') {
+                    if (eventData.name === 'chapter-list') {
+                        chapters = eventData.data;
+                        log("Received chapter-list");
+                        renderMarkers();
+                        updateUI();
+                    } else if (eventData.name === 'chapter') {
+                        const newIdx = typeof eventData.data === 'number' ? eventData.data : -1;
+                        currentChapterIdx = newIdx;
+                        updateUI();
+                    } else if (eventData.name === 'duration') {
+                        const d = eventData.data;
+                        if(typeof d === 'number' && d > 0) {
+                            duration = d;
+                            // Re-render markers if duration changed
+                            renderMarkers();
+                        }
+                    }
+                }
+            }
+        } catch(e) {}
+    });
+
+    log("Requesting cached chapters...");
+    window.chrome.webview.postMessage(JSON.stringify({
+        type: 6,
+        object: "transport",
+        method: "handleInboundJSON",
+        id: 1111,
+        args: ["request-chapters", []]
+    }));
+
+})();
+)JS";
+
+std::wstring GetInjectedChaptersScript() {
+    return std::wstring(INJECTED_CHAPTERS_SCRIPT_PART1) + std::wstring(INJECTED_CHAPTERS_SCRIPT_PART2);
+}
+
 void WaitAndRefreshIfNeeded()
 {
     std::thread([](){
@@ -288,6 +533,7 @@ void InitWebView2(HWND hWnd)
 
                     g_webview->AddScriptToExecuteOnDocumentCreated(EXEC_SHELL_SCRIPT,nullptr);
                     g_webview->AddScriptToExecuteOnDocumentCreated(INJECTED_KEYDOWN_SCRIPT,nullptr);
+                    g_webview->AddScriptToExecuteOnDocumentCreated(GetInjectedChaptersScript().c_str(), nullptr);
 
                     SetupWebMods();
 
@@ -343,6 +589,7 @@ static void SetupWebMessageHandler()
             if(isSuccess) {
                 std::cout<<"[WEBVIEW]: Navigation Complete - Success\n";
                 sender->ExecuteScript(EXEC_SHELL_SCRIPT, nullptr);
+                sender->ExecuteScript(GetInjectedChaptersScript().c_str(), nullptr);
                 // Flush the script queue.
                 if (!g_scriptQueue.empty()) {
                     for (const auto &script : g_scriptQueue) {
@@ -368,6 +615,7 @@ static void SetupWebMessageHandler()
             [](ICoreWebView2* sender, ICoreWebView2ContentLoadingEventArgs* args) -> HRESULT {
                 std::cout<<"[WEBVIEW]: Content loaded\n";
                 sender->ExecuteScript(EXEC_SHELL_SCRIPT, nullptr);
+                sender->ExecuteScript(GetInjectedChaptersScript().c_str(), nullptr);
                 return S_OK;
             }
         ).Get(),
@@ -380,6 +628,7 @@ static void SetupWebMessageHandler()
         [](ICoreWebView2* sender, ICoreWebView2DOMContentLoadedEventArgs* args)->HRESULT
         {
             sender->ExecuteScript(EXEC_SHELL_SCRIPT, nullptr);
+            sender->ExecuteScript(GetInjectedChaptersScript().c_str(), nullptr);
             return S_OK;
         }).Get(),
         &domToken
