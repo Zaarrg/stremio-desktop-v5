@@ -17,14 +17,14 @@ SetDatablockOptimize on
 
 ;Parse package.json
 
-!define APP_NAME "Stremio"
+!define APP_NAME "StremioCommunity"
 !define PRODUCT_VERSION "$%package_version%"
 !define ARCH "$%arch%"
 !searchparse "${PRODUCT_VERSION}" `` VERSION_MAJOR `.` VERSION_MINOR `.` VERSION_REVISION
-!define APP_URL "https://www.stremio.com"
+!define APP_URL "https://github.com/Zaarrg/stremio-community-v5"
 !define DATA_FOLDER "stremio"
 
-!define COMPANY_NAME "Smart Code Ltd"
+!define COMPANY_NAME "Zaarrg"
 
 
 ; ------------------- ;
