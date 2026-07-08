@@ -145,3 +145,4 @@ index 0000000..0000000 100644
 -IndentCaseLabels: false
  IndentWidth: 4
  IndentWrappedFunctionNames: false
+ KeepEmptyLinesAtTheStartOfBlocks: false
