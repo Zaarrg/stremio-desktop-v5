@@ -41,8 +41,12 @@ jobs:
         cmake -S . -B out -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows-static "-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
 
     - name: Build
+      # Build only the stremio target (which pulls in the discord-rpc library),
+      # not the whole solution: discord-rpc also defines a `clangformat` utility
+      # target whose bundled .clang-format has a duplicate key that newer
+      # clang-format rejects, which would otherwise fail the build.
       run: |
-        cmake --build out --config Release --parallel
+        cmake --build out --config Release --target stremio --parallel
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
