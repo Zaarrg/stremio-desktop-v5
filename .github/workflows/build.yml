@@ -2,9 +2,10 @@ name: Windows Build
 
 on:
   push:
-    branches: [ "master", "main", "webview-windows" ]
+    branches: [ "master", "main", "webview-windows", "chapters" ]
   pull_request:
     branches: [ "master", "main", "webview-windows" ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -19,20 +20,28 @@ jobs:
       with:
         submodules: recursive
 
-    - name: Setup Vcpkg
+    - name: Bootstrap vcpkg
+      # Use the vcpkg preinstalled on the runner. Do NOT `git pull` it: the
+      # runner checks vcpkg out on a detached HEAD, where `git pull` fails with
+      # "You are not currently on a branch" and takes the whole job down.
       run: |
-        cd $env:VCPKG_ROOT
-        git pull
-        .\bootstrap-vcpkg.bat
-
-    - name: Install Dependencies via Vcpkg
-      run: |
-        vcpkg install --triplet x64-windows-static
+        & "$env:VCPKG_ROOT\bootstrap-vcpkg.bat"
 
     - name: Configure CMake
+      # Dependencies are installed here via vcpkg manifest mode (VCPKG_MANIFEST_INSTALL
+      # is set in CMakeLists.txt), so no separate `vcpkg install` step is needed.
       run: |
-        cmake -S . -B out -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows-static
+        cmake -S . -B out -G "Visual Studio 17 2022" -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows-static
 
     - name: Build
       run: |
         cmake --build out --config Release --parallel
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: stremio-windows-x64
+        path: |
+          out/Release/stremio.exe
+          out/Release/*.dll
+        if-no-files-found: error
