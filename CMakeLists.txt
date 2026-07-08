@@ -177,7 +177,12 @@ if(NOT RPC_HEADER_CONTENT MATCHES "statusDisplayType")
 endif()
 
 option(BUILD_EXAMPLES "Build example apps" OFF)
+# discord-rpc ships cmake_minimum_required(VERSION 3.2.0), which CMake 4.0+
+# rejects ("Compatibility with CMake < 3.5 has been removed"). Allow the
+# vendored subdirectory to configure under modern CMake.
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 add_subdirectory(deps/discord-rpc)
+unset(CMAKE_POLICY_VERSION_MINIMUM)
 set(DISCORD_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/discord-rpc/include")
 
 include_directories(${DISCORD_INCLUDE_DIR})
