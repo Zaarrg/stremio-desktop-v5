@@ -80,31 +80,84 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 option(DEBUG_LOG "Allow debug logs" ON)
 
-# Locate MPV and Discord
+# ---------------------------------------------------------------------------
+# libmpv — downloaded and unpacked at configure time (no binaries in git).
+#
+# To update mpv: bump MPV_VERSION to a build published at
+#   https://sourceforge.net/projects/mpv-player-windows/files/libmpv/
+# and refresh the matching SHA-256 hashes below. Nothing else needs to change;
+# the DLL, headers and import library are regenerated on the next configure.
+# ---------------------------------------------------------------------------
+set(MPV_VERSION "20260607-git-71ebd08")
+
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     set(MPV_ARCH "x86_64")
+    # v3 = x86-64-v3 (AVX2) optimized build; needs a Haswell-era or newer CPU.
+    set(MPV_ARCHIVE_NAME "mpv-dev-x86_64-v3-${MPV_VERSION}.7z")
+    set(MPV_ARCHIVE_SHA256 "6c48a01aa7783a6543c2edbcab10da3cd2efd54db2af5b590e38b488597a5841")
+    set(MPV_MACHINE "x64")
 else()
     set(MPV_ARCH "i686")
+    set(MPV_ARCHIVE_NAME "mpv-dev-i686-${MPV_VERSION}.7z")
+    set(MPV_ARCHIVE_SHA256 "1a39bbb0e194f5b5685844afb52084e73e0bcba6212c3e4eb9865b2065031e34")
+    set(MPV_MACHINE "x86")
 endif()
 
-set(MPV_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/libmpv/${MPV_ARCH}")
+set(MPV_DIR "${CMAKE_BINARY_DIR}/libmpv/${MPV_ARCH}")
 set(MPV_INCLUDE_DIR "${MPV_DIR}/include")
-set(MPV_LIBRARY "${MPV_DIR}/mpv.lib")
 set(MPV_DLL "${MPV_DIR}/libmpv-2.dll")
-set(MPV_RAR "${MPV_DIR}/libmpv-2.dll.rar")
+set(MPV_LIBRARY "${MPV_DIR}/mpv.lib")
+set(MPV_STAMP "${MPV_DIR}/.mpv-version")
 
-# Auto-extract libmpv if needed
-if(EXISTS "${MPV_RAR}" AND NOT EXISTS "${MPV_DLL}")
-    message(STATUS "Extracting libmpv DLL from ${MPV_RAR}...")
-    execute_process(
-        COMMAND ${CMAKE_COMMAND} -E tar x "${MPV_RAR}"
-        WORKING_DIRECTORY "${MPV_DIR}"
-        RESULT_VARIABLE TAR_RESULT
+# Re-fetch whenever the DLL is missing or the checked-out version changed.
+set(MPV_NEED_FETCH TRUE)
+if(EXISTS "${MPV_DLL}" AND EXISTS "${MPV_STAMP}")
+    file(READ "${MPV_STAMP}" MPV_CACHED_VERSION)
+    string(STRIP "${MPV_CACHED_VERSION}" MPV_CACHED_VERSION)
+    if(MPV_CACHED_VERSION STREQUAL MPV_VERSION)
+        set(MPV_NEED_FETCH FALSE)
+    endif()
+endif()
+
+if(MPV_NEED_FETCH)
+    set(MPV_ARCHIVE "${CMAKE_BINARY_DIR}/${MPV_ARCHIVE_NAME}")
+    message(STATUS "Downloading libmpv ${MPV_VERSION} (${MPV_ARCH})...")
+    file(DOWNLOAD
+        "https://downloads.sourceforge.net/project/mpv-player-windows/libmpv/${MPV_ARCHIVE_NAME}"
+        "${MPV_ARCHIVE}"
+        SHOW_PROGRESS
+        TLS_VERIFY ON
+        EXPECTED_HASH "SHA256=${MPV_ARCHIVE_SHA256}"
+        STATUS MPV_DL_STATUS
     )
-    if(NOT TAR_RESULT EQUAL 0)
-        message(WARNING "Failed to extract libmpv dll. Please unzip manually.")
-    else()
-        message(STATUS "Successfully extracted libmpv.")
+    list(GET MPV_DL_STATUS 0 MPV_DL_CODE)
+    if(NOT MPV_DL_CODE EQUAL 0)
+        list(GET MPV_DL_STATUS 1 MPV_DL_MSG)
+        message(FATAL_ERROR "Failed to download libmpv: ${MPV_DL_MSG}")
+    endif()
+    file(REMOVE_RECURSE "${MPV_DIR}")
+    file(MAKE_DIRECTORY "${MPV_DIR}")
+    file(ARCHIVE_EXTRACT INPUT "${MPV_ARCHIVE}" DESTINATION "${MPV_DIR}")
+    file(WRITE "${MPV_STAMP}" "${MPV_VERSION}\n")
+endif()
+
+# libmpv ships a MinGW import library (libmpv.dll.a) that MSVC's linker cannot
+# consume, so generate an MSVC .lib from the checked-in module-definition file.
+if(NOT EXISTS "${MPV_LIBRARY}")
+    get_filename_component(MPV_MSVC_BINDIR "${CMAKE_LINKER}" DIRECTORY)
+    find_program(MPV_LIB_TOOL NAMES lib lib.exe HINTS "${MPV_MSVC_BINDIR}" REQUIRED)
+    message(STATUS "Generating mpv.lib from libmpv.def...")
+    execute_process(
+        COMMAND "${MPV_LIB_TOOL}"
+                "/def:${CMAKE_CURRENT_SOURCE_DIR}/deps/mpv/libmpv.def"
+                "/machine:${MPV_MACHINE}"
+                "/out:${MPV_LIBRARY}"
+        RESULT_VARIABLE MPV_LIB_RESULT
+        OUTPUT_VARIABLE MPV_LIB_OUTPUT
+        ERROR_VARIABLE MPV_LIB_OUTPUT
+    )
+    if(NOT MPV_LIB_RESULT EQUAL 0)
+        message(FATAL_ERROR "Failed to generate mpv.lib:\n${MPV_LIB_OUTPUT}")
     endif()
 endif()
 

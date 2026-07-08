@@ -8,6 +8,7 @@
 
 bool InitMPV(HWND hwnd);
 void CleanupMPV();
+void ResendChapterData();
 void HandleMpvEvents();
 
 // Commands

@@ -2,9 +2,10 @@ name: Windows Build
 
 on:
   push:
-    branches: [ "master", "main", "webview-windows" ]
+    branches: [ "master", "main", "webview-windows", "chapters" ]
   pull_request:
     branches: [ "master", "main", "webview-windows" ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -19,20 +20,42 @@ jobs:
       with:
         submodules: recursive
 
-    - name: Setup Vcpkg
+    - name: Bootstrap vcpkg
+      # Use the vcpkg preinstalled on the runner. Do NOT `git pull` it: the
+      # runner checks vcpkg out on a detached HEAD, where `git pull` fails with
+      # "You are not currently on a branch" and takes the whole job down.
       run: |
-        cd $env:VCPKG_ROOT
-        git pull
-        .\bootstrap-vcpkg.bat
-
-    - name: Install Dependencies via Vcpkg
-      run: |
-        vcpkg install --triplet x64-windows-static
+        & "$env:VCPKG_ROOT\bootstrap-vcpkg.bat"
 
     - name: Configure CMake
+      # Dependencies are installed here via vcpkg manifest mode (VCPKG_MANIFEST_INSTALL
+      # is set in CMakeLists.txt), so no separate `vcpkg install` step is needed.
+      # Don't pin the generator: the runner image tracks the newest Visual Studio
+      # (currently VS 18 2026), so let CMake auto-detect whatever VS is installed.
+      # CMAKE_POLICY_VERSION_MINIMUM=3.5: the runner ships CMake 4.x, which hard-
+      # errors on the `cmake_minimum_required(VERSION < 3.5)` in the bundled
+      # discord-rpc submodule. This lets that old subproject configure anyway.
+      # NOTE: the policy flag is quoted because PowerShell otherwise splits
+      # `...=3.5` into two arguments (`...=3` and `.5`), corrupting the value.
+      # CLANG_FORMAT_SUFFIX=none: discord-rpc's find_program then looks for
+      # `clang-formatnone`, which doesn't exist, so its `clangformat` target is
+      # never created. Otherwise it is a hard dependency of the discord-rpc
+      # library (add_dependencies in its src/CMakeLists.txt) and fails the
+      # build: the bundled .clang-format has a duplicate `IndentCaseLabels`
+      # key that the runner's newer clang-format rejects. This is upstream's
+      # own opt-out — their build.py sets the same value.
       run: |
-        cmake -S . -B out -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows-static
+        cmake -S . -B out -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows-static "-DCMAKE_POLICY_VERSION_MINIMUM=3.5" -DCLANG_FORMAT_SUFFIX=none
 
     - name: Build
       run: |
-        cmake --build out --config Release --parallel
+        cmake --build out --config Release --target stremio --parallel
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: stremio-windows-x64
+        path: |
+          out/Release/stremio.exe
+          out/Release/*.dll
+        if-no-files-found: error

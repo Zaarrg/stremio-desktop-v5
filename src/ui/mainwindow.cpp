@@ -110,8 +110,9 @@ static void UpdateTheme(HWND hWnd)
     }
 }
 // Handling inbound/outbound Messages
-void SendToJS(const std::string &eventName, const nlohmann::json &eventData)
+    void SendToJS(const std::string &eventName, const nlohmann::json &eventData)
 {
+    if(!g_webview) return;
     static int nextId = 1;
     nlohmann::json msg;
     msg["type"]   = 1;
@@ -229,6 +230,8 @@ void HandleEvent(const std::string &ev, std::vector<std::string> &args)
         }
     } else if (ev == "activity") {
         SetDiscordPresenceFromArgs(args);
+    } else if (ev == "request-chapters") {
+        ResendChapterData();
     } else {
         std::cout<<"Unknown event="<<ev<<"\n";
     }

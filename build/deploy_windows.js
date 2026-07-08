@@ -24,9 +24,10 @@ const CONFIG_DIR = path.join(SOURCE_DIR, 'dist', `win-${ARCH}`, 'portable_config
 const PROJECT_NAME = 'stremio';
 
 // Paths to Additional Dependencies
-const MPV_DLL = ARCH === 'x86'
-    ? path.join(SOURCE_DIR, 'deps', 'libmpv', 'i686', 'libmpv-2.dll')
-    : path.join(SOURCE_DIR, 'deps', 'libmpv', 'x86_64', 'libmpv-2.dll');
+// libmpv is downloaded and unpacked into the build tree by CMake (see the
+// libmpv block in CMakeLists.txt), so the DLL lives under the build dir now.
+const MPV_ARCH = ARCH === 'x86' ? 'i686' : 'x86_64';
+const MPV_DLL = path.join(BUILD_DIR, 'libmpv', MPV_ARCH, 'libmpv-2.dll');
 const SERVER_JS = path.join(SOURCE_DIR, 'utils', 'windows', 'server.js');
 const STREMIO_RUNTIME_EXE = path.join(SOURCE_DIR, 'utils', 'windows', 'stremio-runtime.exe');
 const FFMPEG_FOLDER = path.join(SOURCE_DIR, 'utils', 'windows', 'ffmpeg');
