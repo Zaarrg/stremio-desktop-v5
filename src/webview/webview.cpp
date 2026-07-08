@@ -257,6 +257,10 @@ const wchar_t* INJECTED_CHAPTERS_SCRIPT_PART1 = LR"JS(
                 chapterEl.style.textShadow = '0 1px 4px rgba(0,0,0,1)';
                 chapterEl.style.pointerEvents = 'none';
                 chapterEl.style.fontFamily = 'Segoe UI, sans-serif';
+                // Start hidden: the body-attached fallback has a background
+                // and padding, so with no text it still renders as an empty
+                // pill. updateUI() shows it only while a chapter is active.
+                chapterEl.style.display = 'none';
             }
             
             const bar = getPlayerBar();
@@ -337,15 +341,25 @@ const wchar_t* INJECTED_CHAPTERS_SCRIPT_PART2 = LR"JS(
     }
 
     function updateUI() {
+        // Only meaningful inside the player; elsewhere keep the overlay
+        // hidden so the fixed-position fallback doesn't linger on other
+        // screens (dashboard, detail pages, ...).
+        if (window.location.hash.indexOf('/player') === -1) {
+            if (chapterEl) chapterEl.style.display = 'none';
+            return;
+        }
+
         ensureUI();
-        
+
         // Update Text
+        let title = '';
         if (currentChapterIdx >= 0 && chapters && chapters[currentChapterIdx]) {
             const ch = chapters[currentChapterIdx];
-            const title = ch.title || ('Chapter ' + (currentChapterIdx + 1));
-            if(chapterEl) chapterEl.innerText = title;
-        } else {
-            if(chapterEl) chapterEl.innerText = '';
+            title = ch.title || ('Chapter ' + (currentChapterIdx + 1));
+        }
+        if (chapterEl) {
+            chapterEl.innerText = title;
+            chapterEl.style.display = title ? '' : 'none';
         }
 
         // Check if markers correct
