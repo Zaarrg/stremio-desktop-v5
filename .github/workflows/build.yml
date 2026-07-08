@@ -30,8 +30,10 @@ jobs:
     - name: Configure CMake
       # Dependencies are installed here via vcpkg manifest mode (VCPKG_MANIFEST_INSTALL
       # is set in CMakeLists.txt), so no separate `vcpkg install` step is needed.
+      # Don't pin the generator: the runner image tracks the newest Visual Studio
+      # (currently VS 18 2026), so let CMake auto-detect whatever VS is installed.
       run: |
-        cmake -S . -B out -G "Visual Studio 17 2022" -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows-static
+        cmake -S . -B out -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows-static
 
     - name: Build
       run: |
