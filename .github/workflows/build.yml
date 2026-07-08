@@ -37,14 +37,17 @@ jobs:
       # discord-rpc submodule. This lets that old subproject configure anyway.
       # NOTE: the policy flag is quoted because PowerShell otherwise splits
       # `...=3.5` into two arguments (`...=3` and `.5`), corrupting the value.
+      # CLANG_FORMAT_SUFFIX=none: discord-rpc's find_program then looks for
+      # `clang-formatnone`, which doesn't exist, so its `clangformat` target is
+      # never created. Otherwise it is a hard dependency of the discord-rpc
+      # library (add_dependencies in its src/CMakeLists.txt) and fails the
+      # build: the bundled .clang-format has a duplicate `IndentCaseLabels`
+      # key that the runner's newer clang-format rejects. This is upstream's
+      # own opt-out — their build.py sets the same value.
       run: |
-        cmake -S . -B out -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows-static "-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
+        cmake -S . -B out -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows-static "-DCMAKE_POLICY_VERSION_MINIMUM=3.5" -DCLANG_FORMAT_SUFFIX=none
 
     - name: Build
-      # Build only the stremio target (which pulls in the discord-rpc library),
-      # not the whole solution: discord-rpc also defines a `clangformat` utility
-      # target whose bundled .clang-format has a duplicate key that newer
-      # clang-format rejects, which would otherwise fail the build.
       run: |
         cmake --build out --config Release --target stremio --parallel
 
