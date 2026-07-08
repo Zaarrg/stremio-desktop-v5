@@ -11,6 +11,8 @@
 #include <sstream>
 #include <iomanip>
 #include <iostream>
+#include <cctype>
+#include <system_error>
 
 static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
 {
@@ -32,8 +34,45 @@ static bool DownloadString(const std::string& url, std::string& outData)
     return res == CURLE_OK;
 }
 
-// Download to file
-static bool DownloadFile(const std::string& url, const std::filesystem::path& dest)
+// Captures integrity metadata (md5) from response headers.
+struct HeaderCapture {
+    std::string etag;
+    std::string metaMd5;
+};
+
+static size_t HeaderCallback(char* buffer, size_t size, size_t nitems, void* userdata)
+{
+    size_t total = size * nitems;
+    HeaderCapture* hc = reinterpret_cast<HeaderCapture*>(userdata);
+    std::string line(buffer, total);
+    std::string lower = line;
+    for(char& c : lower) c = (char)tolower((unsigned char)c);
+    if(lower.rfind("etag:", 0) == 0) {
+        size_t a = line.find('"');
+        size_t b = line.rfind('"');
+        if(a != std::string::npos && b != std::string::npos && b > a) {
+            hc->etag = line.substr(a + 1, b - a - 1);
+        }
+    } else if(lower.rfind("x-amz-meta-s3cmd-attrs:", 0) == 0) {
+        // value looks like: atime:.../ctime:.../md5:<hex>/mode:...
+        size_t p = lower.find("md5:");
+        if(p != std::string::npos) {
+            size_t start = p + 4;
+            size_t end = line.find('/', start);
+            std::string md5 = (end == std::string::npos)
+                ? line.substr(start)
+                : line.substr(start, end - start);
+            while(!md5.empty() && (unsigned char)md5.back() <= ' ') md5.pop_back();
+            hc->metaMd5 = md5;
+        }
+    }
+    return total;
+}
+
+// Download to file. When outMd5 is provided it receives the md5 the CDN
+// reported for the bytes it sent (x-amz-meta preferred, else a plain-md5
+// ETag), lowercased, or "" if the response carried no usable md5.
+static bool DownloadFile(const std::string& url, const std::filesystem::path& dest, std::string* outMd5 = nullptr)
 {
     CURL* curl = curl_easy_init();
     if(!curl) return false;
@@ -42,13 +81,27 @@ static bool DownloadFile(const std::string& url, const std::filesystem::path& de
         curl_easy_cleanup(curl);
         return false;
     }
+    HeaderCapture hc;
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L); // don't write 4xx/5xx bodies to disk
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+    if(outMd5) {
+        curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, HeaderCallback);
+        curl_easy_setopt(curl, CURLOPT_HEADERDATA, &hc);
+    }
 
     CURLcode res = curl_easy_perform(curl);
     fclose(fp);
     curl_easy_cleanup(curl);
+
+    if(outMd5) {
+        std::string m = !hc.metaMd5.empty() ? hc.metaMd5 : hc.etag;
+        for(char& c : m) c = (char)tolower((unsigned char)c);
+        bool isMd5 = (m.size() == 32); // reject multipart ETags like "abc-3"
+        for(char c : m) if(!isxdigit((unsigned char)c)) { isMd5 = false; break; }
+        *outMd5 = isMd5 ? m : "";
+    }
     return (res == CURLE_OK);
 }
 
@@ -70,6 +123,34 @@ static std::string FileChecksum(const std::filesystem::path& filepath)
     SHA256_Final(hash, &ctx);
     std::ostringstream oss;
     for(int i=0; i<SHA256_DIGEST_LENGTH; ++i)
+        oss << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i];
+    return oss.str();
+}
+
+// Compute md5 (matches the S3/CDN ETag for non-multipart objects)
+static std::string FileMd5(const std::filesystem::path& filepath)
+{
+    std::ifstream file(filepath, std::ios::binary);
+    if(!file) return "";
+    EVP_MD_CTX* ctx = EVP_MD_CTX_new();
+    if(!ctx) return "";
+    if(EVP_DigestInit_ex(ctx, EVP_md5(), nullptr) != 1) {
+        EVP_MD_CTX_free(ctx);
+        return "";
+    }
+    char buf[4096];
+    while(file.read(buf, sizeof(buf))) {
+        EVP_DigestUpdate(ctx, buf, file.gcount());
+    }
+    if(file.gcount() > 0) {
+        EVP_DigestUpdate(ctx, buf, file.gcount());
+    }
+    unsigned char hash[EVP_MAX_MD_SIZE];
+    unsigned int len = 0;
+    EVP_DigestFinal_ex(ctx, hash, &len);
+    EVP_MD_CTX_free(ctx);
+    std::ostringstream oss;
+    for(unsigned int i=0; i<len; ++i)
         oss << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i];
     return oss.str();
 }
@@ -239,27 +320,63 @@ void RunAutoUpdaterOnce()
             if(pos!=std::wstring::npos) exeDir.erase(pos);
         }
         for(const auto& key : partialUpdateKeys) {
-            if(files.contains(key) && files[key].contains("url") && files[key].contains("checksum")) {
+            if(files.contains(key) && files[key].contains("url")) {
                 std::string url = files[key]["url"].get<std::string>();
-                std::string expectedChecksum = files[key]["checksum"].get<std::string>();
 
                 std::filesystem::path localFilePath = std::filesystem::path(exeDir) / std::wstring(key.begin(), key.end());
-                if(std::filesystem::exists(localFilePath)) {
-                    if(FileChecksum(localFilePath) == expectedChecksum) {
-                        continue; // no update needed
-                    }
-                }
-                if(!DownloadFile(url, localFilePath)) {
+
+                // Stremio serves server.js from a sharded CDN and publishes no
+                // stable checksum, so a hash pinned in the manifest goes stale
+                // and flaps between edges (spurious "corrupted" on every other
+                // launch). Instead, verify the transfer against the md5 the CDN
+                // reports for the bytes it just sent (x-amz-meta / ETag); this
+                // only guards against a truncated or corrupt download, and
+                // accepts whichever build the CDN currently serves. Download to
+                // a temp file first so a bad transfer never clobbers a working
+                // file.
+                std::string oldMd5 = std::filesystem::exists(localFilePath) ? FileMd5(localFilePath) : "";
+                std::filesystem::path tmpPath = localFilePath;
+                tmpPath += L".new";
+
+                std::error_code ec;
+                std::string serverMd5;
+                if(!DownloadFile(url, tmpPath, &serverMd5)) {
                     AppendToCrashLog("[UPDATER]: Failed to download partial file " + key);
-                } else {
-                    if(FileChecksum(localFilePath) != expectedChecksum) {
-                        AppendToCrashLog("[UPDATER]: Downloaded file corrupted " + localFilePath.string());
-                        continue;
-                    }
-                    if(key=="server.js") {
-                        StopNodeServer();
-                        StartNodeServer();
-                    }
+                    std::filesystem::remove(tmpPath, ec);
+                    continue;
+                }
+                if(serverMd5.empty()) {
+                    AppendToCrashLog("[UPDATER]: No server md5 for " + key + ", skipping");
+                    std::filesystem::remove(tmpPath, ec);
+                    continue;
+                }
+                std::string localMd5 = FileMd5(tmpPath);
+                if(localMd5 != serverMd5) {
+                    AppendToCrashLog("[UPDATER]: Downloaded file corrupted " + localFilePath.string());
+                    std::filesystem::remove(tmpPath, ec);
+                    continue;
+                }
+                if(localMd5 == oldMd5) {
+                    std::filesystem::remove(tmpPath, ec); // already up to date
+                    continue;
+                }
+
+                std::filesystem::rename(tmpPath, localFilePath, ec);
+                if(ec) {
+                    // rename can fail if the target is briefly locked; fall back to copy
+                    ec.clear();
+                    std::filesystem::copy_file(tmpPath, localFilePath, std::filesystem::copy_options::overwrite_existing, ec);
+                    std::error_code rmEc;
+                    std::filesystem::remove(tmpPath, rmEc);
+                }
+                if(ec) {
+                    AppendToCrashLog("[UPDATER]: Failed to apply partial file " + key + ": " + ec.message());
+                    continue;
+                }
+
+                if(key=="server.js") {
+                    StopNodeServer();
+                    StartNodeServer();
                 }
             }
         }
