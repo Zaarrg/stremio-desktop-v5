@@ -50,10 +50,13 @@ Ensure the following are installed on your system:
 
 ### 3️⃣ **Prepare the MPV Library**
 
-- **Optional step as mpv is included as submodule:**
-  - Download the MPV library: [MPV libmpv](https://sourceforge.net/projects/mpv-player-windows/files/libmpv/).
-  - Use the `mpv-x86_64` version.
-> **⏳ Note:** The submodule https://github.com/Zaarrg/libmpv already includes .lib, just make sure to unzip the actual .dll for x64 systems.
+- **Nothing to do — libmpv is fetched automatically.**
+  - CMake downloads the pinned [libmpv](https://sourceforge.net/projects/mpv-player-windows/files/libmpv/)
+    build, unpacks it into the build tree, and generates the MSVC import
+    library from `deps/mpv/libmpv.def` on the first configure.
+> **⏳ Note:** To move to a newer mpv, bump `MPV_VERSION` (and the matching
+> SHA-256 hashes) in `CMakeLists.txt` and re-run CMake — no binaries are stored
+> in the repository.
 ---
 
 ### 4️⃣ **Clone and Configure the Repository**
@@ -105,7 +108,7 @@ Ensure the following are installed on your system:
 
 2. **Requirements**
    - To run the deploy_window.js script successfully the following is always required:
-     1. ``libmpv-2.dll`` in ``deps/libmpv/i686`` for ``x86`` or ``deps/libmpv/x86_64`` for ``x64``
+     1. ``libmpv-2.dll`` is fetched into the build tree by CMake — just run cmake once (see requirement 7)
      2. ``server.js`` and ``stremio-runtime.exe`` in ``utils/windows``
      3. ``ffmpeg`` folder with ffmpeg and .dlls in ``utils/windows/ffmpeg``
      4. ``anime4k``  in ``utils/mpv/anime4k/portable_config``
