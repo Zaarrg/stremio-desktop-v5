@@ -35,8 +35,10 @@ jobs:
       # CMAKE_POLICY_VERSION_MINIMUM=3.5: the runner ships CMake 4.x, which hard-
       # errors on the `cmake_minimum_required(VERSION < 3.5)` in the bundled
       # discord-rpc submodule. This lets that old subproject configure anyway.
+      # NOTE: the policy flag is quoted because PowerShell otherwise splits
+      # `...=3.5` into two arguments (`...=3` and `.5`), corrupting the value.
       run: |
-        cmake -S . -B out -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows-static -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+        cmake -S . -B out -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows-static "-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
 
     - name: Build
       run: |
