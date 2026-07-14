@@ -240,6 +240,10 @@ void HandleMpvSetProp(const std::vector<std::string>& args)
         std::string val=args[1];
         if(val=="true")  val="yes";
         if(val=="false") val="no";
+        // The web shell only ever sends hwdec="auto-safe" (HW on) or "no" (HW off); it has no
+        // way to request a specific method. Honor the user's mpv.conf preference (nvdec-copy)
+        // when HW decoding is enabled, while still respecting the UI's on/off intent.
+        if(args[0]=="hwdec" && val!="no") val="nvdec-copy";
         mpv_set_property_string(g_mpv, args[0].c_str(), val.c_str());
     }).detach();
 }
@@ -303,11 +307,15 @@ bool InitMPV(HWND hwnd)
     // demux/caching
     mpv_set_property_string(g_mpv,"demuxer-lavf-probesize",     "524288");
     mpv_set_property_string(g_mpv,"demuxer-lavf-analyzeduration","0.5");
-    mpv_set_property_string(g_mpv,"demuxer-max-bytes","300000000");
+    // Deep prefetch for flaky debrid/CDN sources: fast links (RD/Cloudflare) can close a
+    // connection mid-stream. A large forward buffer keeps minutes of video cushion so the
+    // reconnect refills invisibly, and cache-pause=yes rebuffers cleanly (paused-for-cache)
+    // instead of freezing on a frame when the buffer does run dry.
+    mpv_set_property_string(g_mpv,"demuxer-max-bytes","2000000000"); // 2 GB (was 300 MB)
     mpv_set_property_string(g_mpv,"demuxer-max-packets","150000000");
     mpv_set_property_string(g_mpv,"cache","yes");
-    mpv_set_property_string(g_mpv,"cache-pause","no");
-    mpv_set_property_string(g_mpv,"cache-secs","60");
+    mpv_set_property_string(g_mpv,"cache-pause","yes");             // graceful rebuffer (was no)
+    mpv_set_property_string(g_mpv,"cache-secs","300");             // ~5 min readahead (was 60)
     mpv_set_property_string(g_mpv,"vd-lavc-threads","0");
     mpv_set_property_string(g_mpv,"ad-lavc-threads","0");
     mpv_set_property_string(g_mpv,"audio-fallback-to-null","yes");
