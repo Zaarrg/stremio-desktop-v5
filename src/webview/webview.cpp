@@ -162,9 +162,7 @@ img.addEventListener('error', function() {
 
 const wchar_t* INJECTED_CHAPTERS_SCRIPT_PART1 = LR"JS(
 (function() {
-    // Idempotency check 
     if (window.stremioChaptersInjected) {
-         console.log("[ChapterJS] Already injected, requesting chapters again.");
          try {
             window.chrome.webview.postMessage(JSON.stringify({
                 type: 6,
@@ -182,18 +180,56 @@ const wchar_t* INJECTED_CHAPTERS_SCRIPT_PART1 = LR"JS(
     let currentChapterIdx = -1;
     let duration = 0;
     
-    // Elements
-    let chapterEl = null;      // The text display
-    let markersContainer = null; // Container for lines
+    // UI Elements
+    let chapterEl = null;      // Current (active) chapter text
+    let markersContainer = null; 
+    let tooltipEl = null;      // Hover popup
 
-    function log(msg) {
-        console.log("[ChapterJS]: " + msg);
-        try {
-            window.chrome.webview.postMessage(JSON.stringify({ type: "log", msg: "[ChapterJS] " + msg }));
-        } catch(e){}
+    // Listener state
+    let sliderRef = null; 
+    let isHoverListenerAttached = false;
+
+    function formatTime(seconds) {
+        if (typeof seconds !== 'number' || isNaN(seconds)) return "00:00";
+        seconds = Math.floor(seconds);
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = seconds % 60;
+        
+        const mStr = m.toString().padStart(2, '0');
+        const sStr = s.toString().padStart(2, '0');
+        
+        if (h > 0) {
+            return `${h}:${mStr}:${sStr}`;
+        }
+        return `${mStr}:${sStr}`;
     }
 
-    log("Script initializing...");
+    function getChapterAtTime(time) {
+        if (!chapters || chapters.length === 0) return null;
+        // Find the last chapter that started before or at 'time'
+        let found = null;
+        for (let i = 0; i < chapters.length; i++) {
+            if (chapters[i].time <= time) {
+                found = chapters[i];
+            } else {
+                break;
+            }
+        }
+        return found;
+    }
+
+    // Helper to find the actual slider track element, which sits inside the seek bar wrapper
+    // The wrapper contains: Label (time) | Slider | Label (duration)
+    // We want the Slider.
+    function getSliderBar() {
+        // Positive matched: Find a slider-container that is INSIDE a seek-bar-container.
+        const el = document.querySelector('[class*="seek-bar"] [class*="slider-container"]');
+        if (el && el.offsetParent !== null) {
+            return el;
+        }
+        return null;
+    }
 
     function getPlayerBar() {
         const selectors = [
@@ -210,134 +246,211 @@ const wchar_t* INJECTED_CHAPTERS_SCRIPT_PART1 = LR"JS(
         return null;
     }
 
-    // Try to find the progress/seek bar container
-    function getProgressBar() {
-        const seekBars = document.querySelectorAll('[class*="seek-bar"]');
-        for (const sb of seekBars) {
-             if (sb.offsetParent !== null) return sb;
-        }
-
-        // 2. Generic Fallbacks (but filtered)
-        const selectors = [
-             '[class*="progress-bar"]', 
-             '.progress-container',
-             '.player-progress',
-             'input[type="range"]'
-        ];
-        
-        for (const s of selectors) {
-            const candidates = document.querySelectorAll(s);
-            for (const el of candidates) {
-                // CRITICAL: Exclude dashboard items (posters/cards)
-                if (el.closest('[class*="poster-container"]') || 
-                    el.closest('[class*="meta-item"]') || 
-                    el.closest('.poster-shape-poster')) {
-                    continue;
-                }
-                // Must be somewhat visible/active
-                if (el.offsetParent !== null) return el;
-            }
-        }
-        return null;
-    }
-
     function ensureUI() {
-        // 1. Text Display
-        if (!chapterEl || !document.body.contains(chapterEl)) {
-            // Check if existing element is in DOM (re-attach scenario)
-            chapterEl = document.getElementById('stremio-chapter-display');
-            if(!chapterEl) {
-                chapterEl = document.createElement('div');
-                chapterEl.id = 'stremio-chapter-display';
-                chapterEl.style.color = 'rgba(255, 255, 255, 0.9)';
-                chapterEl.style.fontSize = '1.2em';
-                chapterEl.style.fontWeight = 'bold';
-                chapterEl.style.margin = '0 15px';
-                chapterEl.style.zIndex = '2147483647';
-                chapterEl.style.textShadow = '0 1px 4px rgba(0,0,0,1)';
-                chapterEl.style.pointerEvents = 'none';
-                chapterEl.style.fontFamily = 'Segoe UI, sans-serif';
-                // Start hidden: the body-attached fallback has a background
-                // and padding, so with no text it still renders as an empty
-                // pill. updateUI() shows it only while a chapter is active.
-                chapterEl.style.display = 'none';
-            }
-            
-            const bar = getPlayerBar();
-            if (bar) {
+        // 1. Text Display (Current Chapter) - Attached to Player Bar or Body
+        if (!chapterEl) {
+             chapterEl = document.getElementById('stremio-chapter-display');
+        }
+        
+        if(!chapterEl) {
+             chapterEl = document.createElement('div');
+             chapterEl.id = 'stremio-chapter-display';
+             chapterEl.style.color = 'rgba(255, 255, 255, 0.7)';
+             chapterEl.style.fontSize = '1.1em';
+             chapterEl.style.fontWeight = '500';
+             chapterEl.style.marginLeft = '15px';
+             chapterEl.style.marginRight = '15px';
+             chapterEl.style.zIndex = '2147483647';
+             chapterEl.style.pointerEvents = 'none';
+             chapterEl.style.fontFamily = 'Segoe UI, sans-serif';
+             chapterEl.style.whiteSpace = 'nowrap';
+             chapterEl.style.overflow = 'hidden';
+             chapterEl.style.textOverflow = 'ellipsis';
+             chapterEl.style.maxWidth = '300px';
+             // Adjust vertical alignment
+             chapterEl.style.display = 'flex';
+             chapterEl.style.alignItems = 'center';
+             chapterEl.style.height = '100%';
+        }
+        
+        // Target the volume slider - strict approach
+        let volumeSlider = null;
+        // Priority: Visible volume slider inside control bar
+        const cbVolumes = document.querySelectorAll('[class*="control-bar"] [class*="volume-slider"]');
+        for (const el of cbVolumes) {
+             if (el.offsetParent !== null) {
+                  volumeSlider = el;
+                  break;
+             }
+        }
+        
+
+        
+        if (volumeSlider && volumeSlider.parentNode) {
+             // If we are not already at the correct spot, move us
+             if (chapterEl.previousSibling !== volumeSlider) {
+                 chapterEl.style.position = 'static';
+                 chapterEl.style.transform = 'none';
+                 chapterEl.style.bottom = 'auto';
+                 chapterEl.style.left = 'auto';
                  chapterEl.style.alignSelf = 'center';
-                 // Try to insert cleanly
-                 if(bar.firstChild) bar.insertBefore(chapterEl, bar.firstChild);
-                 else bar.appendChild(chapterEl);
-            } else {
-                 chapterEl.style.position = 'fixed';
-                 chapterEl.style.bottom = '100px';
-                 chapterEl.style.left = '50%';
-                 chapterEl.style.transform = 'translateX(-50%)';
-                 chapterEl.style.backgroundColor = 'rgba(0,0,0,0.5)';
-                 chapterEl.style.padding = '5px 10px';
-                 chapterEl.style.borderRadius = '5px';
-                 document.body.appendChild(chapterEl);
-            }
+                 
+                 volumeSlider.parentNode.insertBefore(chapterEl, volumeSlider.nextSibling);
+             }
+        } else {
+             // Fallback: If not in DOM, attach to body as centered fixed
+             if (!document.body.contains(chapterEl)) {
+                  chapterEl.style.position = 'fixed';
+                  chapterEl.style.bottom = '100px';
+                  chapterEl.style.left = '50%';
+                  chapterEl.style.transform = 'translateX(-50%)';
+                  document.body.appendChild(chapterEl);
+             }
         }
 )JS";
 
 const wchar_t* INJECTED_CHAPTERS_SCRIPT_PART2 = LR"JS(
-        // 2. Markers
-        if (!markersContainer || !document.body.contains(markersContainer)) {
-             markersContainer = document.getElementById('stremio-chapter-markers');
-             if(!markersContainer) {
-                 markersContainer = document.createElement('div');
-                 markersContainer.id = 'stremio-chapter-markers';
-                 markersContainer.style.position = 'absolute';
-                 markersContainer.style.top = '0';
-                 markersContainer.style.left = '0';
-                 markersContainer.style.width = '100%';
-                 markersContainer.style.height = '100%';
-                 markersContainer.style.pointerEvents = 'none';
-                 markersContainer.style.zIndex = '10'; // Above background, below knob
-             }
-             
-             const progress = getProgressBar();
-             if (progress) {
-                 // Re-parent if necessary (e.g. if we moved from dashboard to player, or re-rendered)
-                 if (markersContainer.parentElement !== progress) {
-                     // log("Attaching markers to: " + progress.className);
-                     const computedStyle = window.getComputedStyle(progress);
-                     if(computedStyle.position === 'static') {
-                         progress.style.position = 'relative';
-                     }
-                     progress.appendChild(markersContainer);
+        // 2. Markers Container - Attached to the SLIDER element
+        const slider = getSliderBar();
+        if (slider) {
+            if (!markersContainer || !document.body.contains(markersContainer)) {
+                 markersContainer = document.getElementById('stremio-chapter-markers');
+                 if(!markersContainer) {
+                     markersContainer = document.createElement('div');
+                     markersContainer.id = 'stremio-chapter-markers';
+                     markersContainer.style.position = 'absolute';
+                     markersContainer.style.top = '0';
+                     markersContainer.style.left = '0';
+                     markersContainer.style.width = '100%';
+                     markersContainer.style.height = '100%';
+                     markersContainer.style.pointerEvents = 'none';
+                     markersContainer.style.zIndex = '10';
                  }
-             } else {
-                 // log("No progress bar found for markers");
-             }
+            }
+            // Re-parent checks
+            if (markersContainer.parentElement !== slider) {
+                 const computedStyle = window.getComputedStyle(slider);
+                 if(computedStyle.position === 'static') {
+                     slider.style.position = 'relative';
+                 }
+                 slider.appendChild(markersContainer);
+            }
+        } else {
+            // Slider not found yet
+        }
+
+        // 3. Tooltip Popup
+        if (!tooltipEl || !document.body.contains(tooltipEl)) {
+            tooltipEl = document.getElementById('stremio-hover-popup');
+            if (!tooltipEl) {
+                tooltipEl = document.createElement('div');
+                tooltipEl.id = 'stremio-hover-popup';
+                tooltipEl.style.position = 'fixed';
+                tooltipEl.style.backgroundColor = 'rgba(20, 20, 20, 0.9)';
+                tooltipEl.style.color = '#fff';
+                tooltipEl.style.padding = '6px 10px';
+                tooltipEl.style.borderRadius = '4px';
+                tooltipEl.style.fontSize = '12px';
+                tooltipEl.style.fontFamily = 'Segoe UI, sans-serif';
+                tooltipEl.style.zIndex = '2147483647';
+                tooltipEl.style.pointerEvents = 'none';
+                tooltipEl.style.display = 'none';
+                tooltipEl.style.whiteSpace = 'nowrap';
+                tooltipEl.style.boxShadow = '0 2px 5px rgba(0,0,0,0.5)';
+                tooltipEl.style.border = '1px solid rgba(255,255,255,0.1)';
+                document.body.appendChild(tooltipEl);
+            }
         }
     }
 
     function renderMarkers() {
         if (!markersContainer) return;
-        markersContainer.innerHTML = ''; // Clear old keys
+        markersContainer.innerHTML = '';
         
         if (!chapters || chapters.length === 0 || duration <= 0) return;
 
         chapters.forEach((ch, idx) => {
-            if (!ch.time) return;
+            if (ch.time === undefined || ch.time === null) return;
             const pct = (ch.time / duration) * 100;
             if (pct < 0 || pct > 100) return;
 
             const marker = document.createElement('div');
             marker.style.position = 'absolute';
             marker.style.left = pct + '%';
-            marker.style.top = '25%';      // Start slightly down
-            marker.style.height = '50%';   // Only take up middle 50%
+            marker.style.top = '25%';
+            marker.style.height = '50%';
             marker.style.width = '2px';
-            marker.style.backgroundColor = 'rgba(255, 255, 255, 0.5)'; // Subtle white
-            marker.style.zIndex = '9';     // Below knob (usually 10 or higher)
+            marker.style.backgroundColor = 'rgba(255, 255, 255, 0.6)';
+            marker.style.zIndex = '15'; 
             marker.style.pointerEvents = 'none';
-            marker.title = ch.title || ('Chapter ' + (idx + 1));
+            // marker.title = ch.title || ('Chapter ' + (idx + 1)); // Tooltip handles this now
             markersContainer.appendChild(marker);
         });
+    }
+
+    function onProgressHover(e) {
+        if (!tooltipEl || duration <= 0) return;
+        
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const width = rect.width;
+        if (width <= 0) return;
+
+        const pct = Math.max(0, Math.min(1, x / width));
+        const time = pct * duration;
+        
+        const timeStr = formatTime(time);
+        const ch = getChapterAtTime(time);
+        
+        // Use HTML for multi-line layout
+        let html = `<div style="font-weight:700; font-size:13px; margin-bottom:2px;">${timeStr}</div>`;
+        if (ch && ch.title) {
+            html += `<div style="font-weight:400; font-size:12px; color:rgba(255,255,255,0.8);">${ch.title}</div>`;
+        }
+        
+        tooltipEl.innerHTML = html;
+        tooltipEl.style.display = 'block';
+        tooltipEl.style.whiteSpace = 'normal'; // Allow wrapping/stacking
+        tooltipEl.style.textAlign = 'center';
+
+        // Position tooltip
+        const tipRect = tooltipEl.getBoundingClientRect();
+        let tipLeft = e.clientX - (tipRect.width / 2);
+        let tipTop = rect.top - tipRect.height - 10;
+        
+        // Keep within bounds
+        if (tipLeft < 5) tipLeft = 5;
+        if (tipLeft + tipRect.width > window.innerWidth - 5) {
+            tipLeft = window.innerWidth - tipRect.width - 5;
+        }
+
+        tooltipEl.style.left = tipLeft + 'px';
+        tooltipEl.style.top = tipTop + 'px';
+    }
+
+    function onProgressLeave(e) {
+        if (tooltipEl) {
+            tooltipEl.style.display = 'none';
+        }
+    }
+
+    function attachListeners() {
+        const slider = getSliderBar();
+        if (slider && slider !== sliderRef) {
+            // Remove from old if needed (though usually old is gone)
+            if (sliderRef) {
+                sliderRef.removeEventListener('mousemove', onProgressHover);
+                sliderRef.removeEventListener('mouseleave', onProgressLeave);
+            }
+            
+            sliderRef = slider;
+            sliderRef.addEventListener('mousemove', onProgressHover);
+            sliderRef.addEventListener('mouseleave', onProgressLeave);
+            isHoverListenerAttached = true;
+        } else if (!slider) {
+            sliderRef = null;
+            isHoverListenerAttached = false;
+        }
     }
 
     function updateUI() {
@@ -350,8 +463,9 @@ const wchar_t* INJECTED_CHAPTERS_SCRIPT_PART2 = LR"JS(
         }
 
         ensureUI();
+        attachListeners();
 
-        // Update Text
+        // Update Current Chapter Text (Bottom)
         let title = '';
         if (currentChapterIdx >= 0 && chapters && chapters[currentChapterIdx]) {
             const ch = chapters[currentChapterIdx];
@@ -362,8 +476,6 @@ const wchar_t* INJECTED_CHAPTERS_SCRIPT_PART2 = LR"JS(
             chapterEl.style.display = title ? '' : 'none';
         }
 
-        // Check if markers correct
-        // Re-render if container empty but data exists
         if (markersContainer && markersContainer.childElementCount === 0 && chapters.length > 0) {
             renderMarkers();
         }
@@ -371,7 +483,7 @@ const wchar_t* INJECTED_CHAPTERS_SCRIPT_PART2 = LR"JS(
 
     setInterval(() => {
         updateUI();
-    }, 2000);
+    }, 1500);
 
     window.chrome.webview.addEventListener('message', function(event) {
         try {
@@ -383,7 +495,6 @@ const wchar_t* INJECTED_CHAPTERS_SCRIPT_PART2 = LR"JS(
                 if (eventName === 'mpv-prop-change') {
                     if (eventData.name === 'chapter-list') {
                         chapters = eventData.data;
-                        log("Received chapter-list");
                         renderMarkers();
                         updateUI();
                     } else if (eventData.name === 'chapter') {
@@ -394,7 +505,6 @@ const wchar_t* INJECTED_CHAPTERS_SCRIPT_PART2 = LR"JS(
                         const d = eventData.data;
                         if(typeof d === 'number' && d > 0) {
                             duration = d;
-                            // Re-render markers if duration changed
                             renderMarkers();
                         }
                     }
@@ -403,7 +513,6 @@ const wchar_t* INJECTED_CHAPTERS_SCRIPT_PART2 = LR"JS(
         } catch(e) {}
     });
 
-    log("Requesting cached chapters...");
     window.chrome.webview.postMessage(JSON.stringify({
         type: 6,
         object: "transport",
